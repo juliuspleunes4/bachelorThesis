@@ -21,8 +21,8 @@ def grim_test(reported_mean: float, sample_size: int, decimals: int = 2) -> bool
         return False
 
 # Example usage:
-reported_mean = 30.02
-sample_size = 4
+reported_mean = 6.60
+sample_size = 11
 
 result = grim_test(reported_mean, sample_size)  # Using the default of 2 decimal places
 print(f"Default decimals (2): {result}")
