@@ -51,3 +51,7 @@ To use this automated version of the GRIM Test, run the script and provide the p
 
 
 `python GRIM-gpt4o-mini.py`
+
+# Known Issues
+- The script has issues in correctly identifying when a mean is composed of integer values or floating-point values. This means that it is likely that certain mean values get analysed by the script, even though they do not qualify for GRIM analysis, as they are not derived from integer data. 
+- The script has issues correctly correlating the correct sample size to the according mean value when there is (quite) some context between the two mentions in the text.
