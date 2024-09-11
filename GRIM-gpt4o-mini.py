@@ -64,6 +64,8 @@ class GRIMTester:
         prompt = f"""
         Extract ALL relevant reported means and sample sizes from the following text. Ensure that each extracted mean is based on integer data (e.g., Likert scale responses or other whole-number responses). Do not extract means that are based on continuous or floating-point data such as mean differences, survey completion times, or medians. NEVER consider medians or other central tendencies, only means.
 
+        Again, only consider means that are COMPOSED OF INTEGER DATA. This has to be explicitly stated in the text
+
         Do not perform any calculations. Simply identify and extract means that are composed of integer data, such as Likert-scale responses where individual responses are whole numbers, but keep the mean values exactly as reported (with decimal points if applicable). NEVER CONSIDER MEDIANS OR OTHER CENTRAL TENDENCIES!
 
         At every mean found, check again what the correlating sample size is. If not directly apparent, check if the sample size was mentioned earlier. Check if the initial sample size was split into groups, and if so, how many groups there were. For instance, check if there is an experimental condition and a control condition, and if so, how many participants were in each group.
@@ -79,6 +81,7 @@ class GRIMTester:
         ]
 
         {context}
+        For every mean value found, ask yourself once again, is this mean value composed of integer data? If the answer is no, do not extract it. If the answer is yes, extract it.
 
         After you have read the text above, read it again to ensure you understand the instructions. Then, extract the reported means and sample sizes as requested.
         """
