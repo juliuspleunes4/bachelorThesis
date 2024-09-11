@@ -22,6 +22,11 @@ class GRIMTester:
     def grim_test(self, reported_mean: float, sample_size: int, decimals: int = 2) -> bool:
         """
         Check if the reported mean is mathematically possible given the sample size and a specified number of decimal places.
+
+        :param reported_mean: The mean value reported in the study.
+        :param sample_size: The number (N) of samples in the study.
+        :param decimals: The number of decimal places to check against (default is 2).
+        :return: True if the reported mean is possible, False if it is impossible.
         """
         total_sum = reported_mean * sample_size
         possible_sum_1 = int(total_sum)  # Round down
@@ -33,7 +38,11 @@ class GRIMTester:
             return False
 
     def get_decimal_places(self, value_str) -> int:
-        """Function to calculate the number of decimal places in a reported mean, including trailing zeros."""
+        """Function to calculate the number of decimal places in a reported mean, including trailing zeros.
+        
+        :param value_str: The string representation of the reported mean.
+        :return: The number of decimal places in the reported mean.
+        """
         if '.' in value_str:
             return len(value_str.split('.')[1])
         else:
@@ -41,7 +50,16 @@ class GRIMTester:
 
     def extract_data_from_text(self, context) -> str:
         """
-        Send context to the gpt-4o-mini model to extract reported means and sample sizes.
+        Send context to the gpt-4o-mini model to extract reported means and sample sizes. 
+        The model will return test entries formatted like:
+    
+        tests = [
+            {{"reported_mean": "<mean>", "sample_size": <size>}},
+            ...
+        ]
+
+        :param context: The scientific text containing reported means and sample sizes.
+        :return: The extracted test data as a string.
         """
         prompt = f"""
         Extract ALL relevant reported means and sample sizes from the following text. Ensure that each extracted mean is based on integer data (e.g., Likert scale responses or other whole-number responses). Do not extract means that are based on continuous or floating-point data such as mean differences, survey completion times, or medians. NEVER consider medians or other central tendencies, only means.
@@ -85,7 +103,11 @@ class GRIMTester:
         return response_content
 
     def read_context_from_file(self, file_path) -> str:
-        """Reads the context from a .txt or .pdf file."""
+        """Reads the context from a .txt or .pdf file.
+        
+        :param file_path: The path to the file containing the context.
+        :return: The context as a string
+        """
         try:
             if file_path.endswith('.txt'):
                 with open(file_path, 'r', encoding='utf-8') as file:
@@ -105,7 +127,11 @@ class GRIMTester:
             return None
 
     def perform_grim_test(self, context) -> None:
-        """Extract test data and perform GRIM testing."""
+        """Extract test data and perform GRIM testing.
+        
+        :param context: The scientific context, potentially containing reported means and sample sizes.
+        :return: None, prints the results of the GRIM test.
+        """
         test_data = self.extract_data_from_text(context)
 
         if test_data is None:
