@@ -19,7 +19,7 @@ Once this is done, everything should be installed and ready for use.
 
 ## How it Works
 
-1. **Central Class**: The `GRIMTester` class contains all methods for reaading context from files, extracting reported means, conducting the GRIM test, and presenting results.
+1. **Central Class**: The `GRIMTester` class contains all methods for reading context from files, extracting reported means, conducting the GRIM test, and presenting results.
    
 3. **Extract Data**: The `extract_data_from_text` method uses the `GPT-4o-mini` AI model to identify and extract reported means and sample sizes from the text. The model is inscructed to only extract means that are composed of integer data. The output is formatted according to the specified requirements, so it can be used by other methods in the class.
 
