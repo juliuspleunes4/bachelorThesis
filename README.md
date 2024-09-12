@@ -47,7 +47,7 @@ Once this is done, everything should be installed and ready for use.
 
 ## Usage
 
-To use this automated version of the GRIM Test, run the script and provide the path to your text or PDF file when prompted. The script will read the file, extract the relevant data, perform the GRIM test, and output the results in a pandas DataFrame. Use the following command in your terminal to run the script:
+To use this automated version of the GRIM Test, run the script and provide the path to your `.txt` or `.pdf` file when prompted. The script will read the file, extract the relevant data, perform the GRIM test, and output the results in a pandas DataFrame. Use the following command in your terminal to run the script:
 
 
 `python GRIM-gpt4o-mini.py`
