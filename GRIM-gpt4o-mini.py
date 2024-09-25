@@ -62,15 +62,17 @@ class GRIMTester:
         :return: The extracted test data as a string.
         """
         prompt = f"""
-        Extract ALL relevant reported means and sample sizes from the following text. Ensure that each extracted mean is based on integer data (e.g., Likert scale responses or other whole-number responses). Do not extract means that are based on continuous or floating-point data such as mean differences, survey completion times, or medians. NEVER consider medians or other central tendencies, only means.
+        Extract ALL relevant reported means and sample sizes from the following text. Ensure that each extracted mean is based on integer data (e.g., Likert scale responses or other whole-number responses). Do not extract means that are based on continuous or floating-point data such as mean differences, survey completion times, or medians. **NEVER consider medians or other central tendencies, only means.**
 
-        Again, only consider means that are COMPOSED OF INTEGER DATA. This has to be explicitly stated in the text
+        Again, only consider means that are COMPOSED OF INTEGER DATA. This has to be explicitly stated in the text.
 
-        Do not perform any calculations. Simply identify and extract means that are composed of integer data, such as Likert-scale responses where individual responses are whole numbers, but keep the mean values exactly as reported (with decimal points if applicable). NEVER CONSIDER MEDIANS OR OTHER CENTRAL TENDENCIES!
+        **IMPORTANT: Do NOT extract any statistical test values such as t-values, F-values, chi-square values (χ²), z-values, correlation coefficients (r-values), or any other test statistics. These are not means and should be ignored.**
+
+        Do not perform any calculations. Simply identify and extract means that are composed of integer data, such as Likert-scale responses where individual responses are whole numbers, but keep the mean values exactly as reported (with decimal points if applicable). **NEVER CONSIDER MEDIANS OR OTHER CENTRAL TENDENCIES!**
 
         At every mean found, check again what the correlating sample size is. If not directly apparent, check if the sample size was mentioned earlier. Check if the initial sample size was split into groups, and if so, how many groups there were. For instance, check if there is an experimental condition and a control condition, and if so, how many participants were in each group.
 
-        Extract ONLY the reported means and their corresponding sample sizes from the following text. Do NOT extract medians, mean differences, survey completion times, or any other central tendencies like median, mode, or ranges. Focus only on the values explicitly described as MEAN.
+        Extract ONLY the reported means and their corresponding sample sizes from the following text. **Do NOT extract medians, mean differences, survey completion times, statistical test values (like t-values, F-values, etc.), or any other central tendencies like median, mode, or ranges. Focus only on the values explicitly described as MEAN.**
 
         Make sure you extract every relevant mean down to the last decimal place, ALWAYS INCLUDE TRAILING ZEROS. If a mean is reported as 6.60, make sure to extract it as 6.60, not 6.6.
 
@@ -81,17 +83,19 @@ class GRIMTester:
         ]
 
         {context}
-        For every mean value found, ask yourself once again, is this mean value composed of integer data? If the answer is no, do not extract it. If the answer is yes, extract it.
+        For every mean value found, ask yourself once again, is this mean value composed of integer data? Is it explicitly described as a mean (not a test statistic)? If the answer to both is yes, extract it.
 
         After you have read the text above, read it again to ensure you understand the instructions. Then, extract the reported means and sample sizes as requested.
         """
+
 
         response = self.client.chat.completions.create(
             model="gpt-4o-mini",
             messages=[
                 {"role": "system", "content": "You are an assistant that extracts mean values from scientific text."},
                 {"role": "user", "content": prompt}
-            ]
+            ],
+            temperature=0,
         )
 
         response_content = response.choices[0].message.content
