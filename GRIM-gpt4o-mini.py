@@ -7,7 +7,7 @@ import pandas as pd
 from dotenv import load_dotenv
 import os
 import ast
-import pdfplumber
+import fitz  # PyMuPDF
 
 # Load environment variables from the .env file
 load_dotenv()
@@ -111,27 +111,33 @@ class GRIMTester:
 
     def read_context_from_file(self, file_path) -> str:
         """Reads the context from a .txt or .pdf file.
-        
+
         :param file_path: The path to the file containing the context.
-        :return: The context as a string
+        :return: The context as a string.
         """
         try:
             if file_path.endswith('.txt'):
                 with open(file_path, 'r', encoding='utf-8') as file:
-                    return file.read()
+                    text = file.read()
             elif file_path.endswith('.pdf'):
-                # Use pdfplumber to extract text from PDF
-                with pdfplumber.open(file_path) as pdf:
-                    pdf_text = ''
-                    for page in pdf.pages:
-                        pdf_text += page.extract_text()
-                    return pdf_text
+                # Use PyMuPDF to extract text from PDF
+                text = ''
+                with fitz.open(file_path) as doc:
+                    for page_num in range(len(doc)):
+                        page = doc[page_num]
+                        page_text = page.get_text()
+                        if page_text:
+                            text += page_text + '\n'
             else:
                 print("Unsupported file format. Please provide a .txt or .pdf file.")
-                return None
+                return ''
+
+            return text  # Return the entire text without segmentation
         except FileNotFoundError:
             print("The file was not found. Please provide a valid file path.")
-            return None
+            return ''
+
+    
 
     def perform_grim_test(self, context) -> None:
         """Extract test data and perform GRIM testing.
