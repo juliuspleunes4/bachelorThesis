@@ -270,7 +270,7 @@ class StatCheckTester:
             print("The file was not found. Please provide a valid file path.")
             return []
 
-    def determine_reported_significance(self, operator, reported_p_value, significance_level):
+    def determine_reported_significance(self, operator, reported_p_value, significance_level) -> bool:
         """
         Determine the significance of the REPORTED p-value based on the provided operator and significance level.
 
@@ -290,7 +290,7 @@ class StatCheckTester:
         else:
             return False  # Invalid operator
 
-    def determine_recalculated_significance(self, p_value_range, significance_level):
+    def determine_recalculated_significance(self, p_value_range, significance_level) -> bool:
         """
         Determine the significance of the RECALCULATED p-value range based on the significance level.
 
