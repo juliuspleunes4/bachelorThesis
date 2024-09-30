@@ -270,7 +270,7 @@ class StatCheckTester:
             # Maximum words per segment
             max_words = 500
             # Number of words to overlap between segments
-            overlap = 10
+            overlap = 8
             # Split words into overlapping segments
             # Ensures that each tests gets detected, even if it spans multiple segments
             segments = []
