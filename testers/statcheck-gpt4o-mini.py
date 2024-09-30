@@ -269,8 +269,19 @@ class StatCheckTester:
             words = text.split()
             # Maximum words per segment
             max_words = 500
-            # Split words into segments
-            segments = [' '.join(words[i:i + max_words]) for i in range(0, len(words), max_words)]
+            # Number of words to overlap between segments
+            overlap = 10
+            # Split words into overlapping segments
+            # Ensures that each tests gets detected, even if it spans multiple segments
+            segments = []
+            i = 0
+            while i < len(words):
+                # Extract a segment with overlap
+                segment = words[i:i + max_words]
+                segments.append(' '.join(segment))
+                # Move the index forward by max_words minus overlap
+                i += max_words - overlap
+
             return segments
         except FileNotFoundError:
             print("The file was not found. Please provide a valid file path.")
@@ -329,7 +340,12 @@ class StatCheckTester:
             if test_data is not None:  # Valid test data is found
                 # Convert the extracted data from a string to a list of dictionaries
                 tests = ast.literal_eval(test_data)
-                all_tests.extend(tests)
+                for test in tests:
+                    # Check if all_tests is not empty and the last test is the same as the current test
+                    # This is to avoid adding duplicate tests that span multiple segments due to overlap
+                    if all_tests and test == all_tests[-1]:
+                        continue  # Skip adding the duplicate test
+                    all_tests.append(test)
             else:  
                 # No valid test data found in the segment
                 continue
