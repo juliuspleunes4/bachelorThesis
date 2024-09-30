@@ -164,7 +164,13 @@ class StatCheckTester:
 
     def extract_data_from_text(self, context) -> str:
         """
-        Use AI to extract reported statistical tests from the provided context.
+        Send context to the gpt-4o-mini model to extract reported statistical tests.
+        The model will return the extracted statistical tests as a list of dictionaries (still in string format).
+        The list of dictionaries will look like this:
+        tests = [
+            {"test_type": "<test_type>", "df1": <df1>, "df2": <df2>, "test_value": <test_value>, "operator": "<operator>", "reported_p_value": <reported_p_value>, "tail": "<tail>"},
+            ...
+        ]
 
         :param context: The scientific text containing reported statistical tests.
         :return: The extracted test data as a string.

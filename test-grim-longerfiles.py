@@ -13,6 +13,7 @@ import fitz  # PyMuPDF
 # Load environment variables from the .env file
 load_dotenv()
 
+
 class GRIMTester:
     def __init__(self):
         # Retrieve the OpenAI API key from the .env file
@@ -39,7 +40,8 @@ class GRIMTester:
             return False
 
     def get_decimal_places(self, value_str) -> int:
-        """Function to calculate the number of decimal places in a reported mean, including trailing zeros.
+        """
+        Function to calculate the number of decimal places in a reported mean, including trailing zeros.
 
         :param value_str: The string representation of the reported mean.
         :return: The number of decimal places in the reported mean.
@@ -89,7 +91,6 @@ class GRIMTester:
         After you have read the text above, read it again to ensure you understand the instructions. Then, extract the reported means and sample sizes as requested.
         """
 
-
         response = self.client.chat.completions.create(
             model="gpt-4o-mini",
             messages=[
@@ -99,19 +100,23 @@ class GRIMTester:
             temperature=0.0,
         )
 
-        response_content = response.choices[0].message.content
-        response_content = response_content.replace('```python', '').replace('```', '').strip()
+        response_content = response.choices[0].message.content  # Choose the first response from the OpenAI API
+        response_content = response_content.replace('```python', '').replace('```', '').strip()  # Clean up the response
 
+        # Check if the response contains the expected format
         if response_content.startswith("tests ="):
+            # Remove the 'tests =' part, only the list of dictionaries is preserved, still in string format
             response_content = response_content[len("tests = "):].strip()
         else:
             print("Error: The response does not contain the expected format.")
             return None
 
+        # List of dictionaries (in string format)
         return response_content
 
     def read_context_from_file(self, file_path) -> list:
-        """Reads the context from a .txt or .pdf file and splits it into segments.
+        """
+        Reads the context from a .txt or .pdf file and splits it into segments.
 
         :param file_path: The path to the file containing the context.
         :return: A list of context segments, each as a string.
@@ -144,31 +149,30 @@ class GRIMTester:
             print("The file was not found. Please provide a valid file path.")
             return []
 
+    def perform_grim_test(self, file_context) -> None:
+        """
+        Extract test data from context segment(s) and perform the GRIM test.
 
-    def perform_grim_test(self, context_segments) -> None:
-        """Extract test data from multiple context segments and perform GRIM testing.
-
-        :param context_segments: A list of context segments.
+        :param file_context: A list of context segments.
         :return: None, prints the results of the GRIM test.
         """
         all_tests = []
 
-        for idx, context in enumerate(context_segments):
-            print(f"Processing segment {idx + 1}/{len(context_segments)}...")
+        # Use enumerate to get the index of the segment
+        # Iterate over each segment in the file_context
+        for idx, context in enumerate(file_context):
+            print(f"Processing segment {idx + 1}/{len(file_context)}...")
             test_data = self.extract_data_from_text(context)
 
-            if test_data is None:
-                print(f"No valid test data found in segment {idx + 1}.")
-                continue
-
-            try:
+            if test_data is not None:  # Valid test data is found
                 # Convert the extracted data from a string to a list of dictionaries
                 tests = ast.literal_eval(test_data)
                 all_tests.extend(tests)
-            except (ValueError, SyntaxError) as Error:
-                print(f"Error processing the extracted data in segment {idx + 1}: {Error}")
+            else:  
+                # No valid test data found in the segment
                 continue
 
+        # Perform the GRIM test for each extracted test
         if all_tests:
             grim_test_results = []
 
@@ -187,6 +191,7 @@ class GRIMTester:
                     "Decimals": decimals
                 })
 
+            # Display the results in a DataFrame
             df_grim_results = pd.DataFrame(grim_test_results)
             df_grim_results = df_grim_results[["Consistent", "Reported Mean", "Sample Size", "Decimals"]]
 
@@ -202,8 +207,8 @@ if __name__ == "__main__":
     file_path = input("Please provide the file path to the context you want to analyse:\n")
 
     # Read the context segments from the provided file path
-    context_segments = tester.read_context_from_file(file_path)
+    file_context = tester.read_context_from_file(file_path)
 
     # If context segments were successfully read, extract the data and perform the GRIM test
-    if context_segments:
-        tester.perform_grim_test(context_segments)
+    if file_context:
+        tester.perform_grim_test(file_context)
