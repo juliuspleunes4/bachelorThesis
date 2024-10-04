@@ -12,8 +12,8 @@ This project contains two AI-powered Python scripts which can be used for automa
     - [How It Works](#how-it-works)
 - [Important Tips](#important-tips)
 - [Known issues](#known-issues)
-    - [GRIM Test](#grim-test)
-    - [Statcheck](#statcheck)
+    - [GRIM-Related Issues](#grim-related-issues)
+    - [Statcheck-Related Issues](#statcheck-related-issues)
 
 # Getting Started
 
@@ -118,10 +118,10 @@ Since the reported p-value of `0.0587` falls between the recalculated range `0.0
 
 
 # Known Issues
-## GRIM Test
+## GRIM-Related Issues
 - The AI integration in the script has issues in correctly identifying when a mean is composed of integer values or floating-point values. This means that it is likely that certain mean values get analysed by the script, even though they do not qualify for GRIM analysis, as they are not derived from integer data. 
 - The AI integration in the script has issues correctly correlating the correct sample size to the according mean value when there is (quite) some context between the two mentions in the text.
 
-## Statcheck
+## Statcheck-Related Issues
 - **Typesetting issues**: In some journals, mathematical symbols such as `<` are replaced by an image of this symbol, which can’t be converted to plain text. This means that the correct operator cannot be extracted, meaning the script has to fill in an operator itself. Usually, the script fills in the `=` operator, which is likely to be incorrect. 
 
