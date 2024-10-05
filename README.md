@@ -80,6 +80,9 @@ Since the reported p-value of `0.0587` falls between the recalculated range `0.0
 ## How It Works
 1. **Central Class**: The `StatcheckTester` class contains all methods for reading context from files, extracting reported  statistical tests, recalculating a valid p-value range, comparison and presenting results.
 2. **Convert**: The `.txt` or `.pdf` file gets converted into plain text.
+
+3. **Segmentation and Overlap**: The plain text is then split into segments of 500 words each, with an overlap of 8 words between consecutive segments. Using segmentation, the script does a much better job at correctly identifying all statistical tests in the entire context. The overlap ensures that each statistical test is detected, even if the test spans multiple segments (`test X` starts at the end of segment `n`, it ends at the begin of segment `n + 1`).
+
    
 3. **Extract Data**: The `extract_data_from_text` method uses the `GPT-4o-mini` AI model to identify and extract reported statistical tests from the text. The output is formatted according to the specified requirements, so it can be used by other methods in the class. The model can extract the following parameters:
 
