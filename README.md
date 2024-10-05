@@ -26,7 +26,7 @@ First, download the source code from this repository. Make sure Python 3.9.7 is 
 Once this is done, everything should be installed and ready for use.
 
 ## Running the Tests
-You can run the GRIM Test and StatCheck scripts by executing their corresponding Python file and providing the path to your `.txt` or `.pdf` file when prompted.
+You can run the GRIM Test and Statcheck scripts by executing their corresponding Python file and providing the path to your `.txt` or `.pdf` file when prompted.
 
  - To run the **GRIM Test**:
    
