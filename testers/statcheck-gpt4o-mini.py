@@ -20,7 +20,7 @@ pd.set_option('display.colheader_justify', 'center')
 load_dotenv()
 
 
-class StatCheckTester:
+class StatcheckTester:
     def __init__(self):
         # Retrieve the OpenAI API key from the .env file
         self.api_key = os.getenv('OPENAI_API_KEY')
@@ -431,7 +431,7 @@ class StatCheckTester:
 
 # Usage:
 if __name__ == "__main__":
-    tester = StatCheckTester()
+    tester = StatcheckTester()
 
     # Prompt the user to provide the file path
     file_path = input("Please provide the file path to the context you want to analyse:\n")
