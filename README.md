@@ -103,7 +103,7 @@ Since the reported p-value of `0.0587` (when rounded to the number of reported d
    - `Consistent`: Indicates whether the reported p-value falls within the valid recalculated range (`Yes` for consistent, `No` for inconsistent).
    - `APA Reporting`: Displays the correct APA reporting of the detected test, regardless of how the test is reported in the context.
    - `Reported P-value`: The p-value as originally reported in the text.
-   - `Valid P-value Range`: The range of valid p-values (upper, lower) based on the test statistic and degrees of freedom.
+   - `Valid P-value Range`: The range of valid p-values (lower, upper) based on the test statistic and degrees of freedom.
    - `Notes`: Any additional information regarding the result, such as the presence of gross or regular inconsistencies.
 
 
