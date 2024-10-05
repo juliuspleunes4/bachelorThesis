@@ -75,7 +75,7 @@ For a reported t-test with `t(30) = 1.96` and `p = 0.0587`, the script calulates
 - Lower bound: `t = 1.964999...` gives a p-value of `0.05873`.
 - Upper bound: `t = 1.955` gives a p-value of `0.05996`.
 
-Since the reported p-value of `0.0587` falls between the recalculated range (when rounded to the number of reported decimal points, in this case 4) `0.05873 to 0.05996`, the test is consistent:
+Since the reported p-value of `0.0587` (when rounded to the number of reported decimal points, in this case 4) falls between the recalculated range `0.05873 to 0.05996`, the test is consistent:
 
 ## How It Works
 1. **Central Class**: The `StatcheckTester` class contains all methods for reading context from files, extracting reported  statistical tests, recalculating a valid p-value range, comparison and presenting results.
