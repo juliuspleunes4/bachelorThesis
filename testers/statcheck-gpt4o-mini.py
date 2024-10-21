@@ -181,8 +181,8 @@ class StatcheckTester:
         Please extract ALL statistical tests reported in the following text. For each test, extract the following components:
 
         - test_type: one of 'r', 't', 'f', 'chi2', 'z'.
-        - df1: First degree of freedom (integer). If not applicable, set to None.
-        - df2: Second degree of freedom (integer). If not applicable, set to None.
+        - df1: First degree of freedom (float or integer). If not applicable, set to None.
+        - df2: Second degree of freedom (float or integer). If not applicable, set to None.
         - test_value: The test statistic value (float).
         - operator: The operator used in the reported p-value ('=', '<', '>').
         - reported_p_value: The numerical value of the reported p-value (float).
@@ -294,7 +294,7 @@ class StatcheckTester:
         :param operator: The operator used in the reported p-value ('=', '<', '>').
         :param reported_p_value: The numerical value of the reported p-value.
         :param significance_level: The significance level (e.g., 0.05).
-        :return: True if significant, False if not significant, None if ambiguous.
+        :return: True if significant, False if not significant.
         """
         if operator == '=' or operator == '<':
             if reported_p_value <= significance_level:
@@ -313,7 +313,7 @@ class StatcheckTester:
 
         :param p_value_range: Tuple (lower, upper) of the recalculated p-value range.
         :param significance_level: The significance level (now hardcoded at 0.05).
-        :return: True if significant, False if not significant, None if ambiguous.
+        :return: True if significant, False if not significant.
         """
         if p_value_range[1] < significance_level:
             return True
