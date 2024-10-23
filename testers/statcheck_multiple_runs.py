@@ -10,6 +10,8 @@ from dotenv import load_dotenv
 import os
 import ast
 import fitz  # PyMuPDF
+from collections import Counter
+from io import StringIO
 
 # Set pandas display options for better readability
 pd.set_option('display.max_columns', None)
@@ -446,7 +448,10 @@ class StatcheckTester:
                 # Set display options for better readability
                 pd.set_option('display.max_colwidth', None)
 
-                print(df_statcheck_results)
+                # Return instead of printing so the results can be compared
+                return df_statcheck_results
+            else:
+                return None
 
 
 # Usage:
@@ -461,4 +466,28 @@ if __name__ == "__main__":
 
     # If context segments were successfully read, extract the data and perform the StatCheck test
     if file_context:
-        tester.perform_statcheck_test(file_context)
+        # Perform the StatCheck test multiple times (in this case 3) to find the most consistent result
+        results_list = []
+        for i in range(3):
+            print(f"Run {i+1} of 3")
+            result_df = tester.perform_statcheck_test(file_context)
+            if result_df is not None:
+                results_list.append(result_df)
+            else:
+                print("No results in this run.")
+
+        # Compare the results and find the most frequent one
+        # Convert each DataFrame to a string representation
+        results_str_list = [df.to_csv(index=False) for df in results_list]
+        # Count the frequencies
+        counts = Counter(results_str_list)
+        # Find the most common result
+        if counts:
+            most_common_result_str, frequency = counts.most_common(1)[0]
+            # Convert the string back to a DataFrame
+            most_common_df = pd.read_csv(StringIO(most_common_result_str))
+            # Display the most frequent result
+            print("\nMost frequent result:")
+            print(most_common_df)
+        else:
+            print("Inconsistent results, please run the test again.")
