@@ -1,6 +1,13 @@
 # bachelorThesis
 This project contains two AI-powered Python scripts which can be used for automated statistical error detection. The following tests are included: the **GRIM Test** & **Statcheck**. Both scripts leverage AI to extract data from provided files and then use Python to perfrom the necessary calculations. This is to ensure that the calculations are done correctly, since AI models are still prone to making errors when it comes to mathematics.
 
+# Credits
+The creation of the code for the GRIM test has been inspired by the paper "_The GRIM Test: A Simple Technique Detects Numerous Anomalies in the Reporting of Results in Psychology_", `(Brown & Heathers, 2016)`. DOI: `10.1177/1948550616673876`.
+
+The creation of the code for Statcheck has been inspired by the paper "_The prevalence of statistical reporting errors in psychology (1985-2013)_", `(Nuijten et al., 2016)`. DOI: `10.3758/s13428-015-0664-2`.
+
+The GitHub page for the R package of `statcheck` created by Michèle Nuijten can be found [here](https://github.com/MicheleNuijten/statcheck). 
+
 # Contents
 
 - [Getting Started](#getting-started)
