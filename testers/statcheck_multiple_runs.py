@@ -10,6 +10,7 @@ from dotenv import load_dotenv
 import os
 import ast
 import fitz  # PyMuPDF
+from bs4 import BeautifulSoup
 from collections import Counter
 from io import StringIO
 
@@ -245,16 +246,19 @@ class StatcheckTester:
 
     def read_context_from_file(self, file_path) -> list:
         """
-        Reads the context from a .txt or .pdf file and splits it into segments.
+        Reads the context from a .txt, .pdf, .html, or .htm file and splits it into segments.
 
         :param file_path: The path to the file containing the context.
         :return: A list of context segments, each as a string.
         """
         try:
-            if file_path.endswith('.txt'):
+            # Remove any extra whitespace and get the file extension in lowercase
+            file_extension = os.path.splitext(file_path.strip())[-1].lower()
+
+            if file_extension == '.txt':
                 with open(file_path, 'r', encoding='utf-8') as file:
                     text = file.read()
-            elif file_path.endswith('.pdf'):
+            elif file_extension == '.pdf':
                 # Use PyMuPDF to extract text from PDF
                 text = ''
                 with fitz.open(file_path) as doc:
@@ -263,8 +267,13 @@ class StatcheckTester:
                         page_text = page.get_text()
                         if page_text:
                             text += page_text + '\n'
+            elif file_extension in ('.html', '.htm'):
+                # Use BeautifulSoup to extract text from HTML or HTM
+                with open(file_path, 'r', encoding='utf-8') as file:
+                    soup = BeautifulSoup(file, 'html.parser')
+                    text = soup.get_text(separator=' ')
             else:
-                print("Unsupported file format. Please provide a .txt or .pdf file.")
+                print("Unsupported file format. Please provide a .txt, .pdf, .html, or .htm file.")
                 return []
 
             # Split the text into words
@@ -274,7 +283,6 @@ class StatcheckTester:
             # Number of words to overlap between segments
             overlap = 8
             # Split words into overlapping segments
-            # Ensures that each tests gets detected, even if it spans multiple segments
             segments = []
             i = 0
             while i < len(words):
