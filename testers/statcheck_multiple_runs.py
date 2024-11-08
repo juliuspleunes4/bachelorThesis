@@ -13,11 +13,13 @@ import fitz  # PyMuPDF
 from bs4 import BeautifulSoup
 from collections import Counter
 from io import StringIO
+import time
 
 # Set pandas display options for better readability
 pd.set_option('display.max_columns', None)
 pd.set_option('display.width', 10000)
 pd.set_option('display.colheader_justify', 'center')
+pd.set_option('display.max_rows', None)
 
 # Load environment variables from the .env file
 load_dotenv()
@@ -196,6 +198,7 @@ class StatcheckTester:
         - Be tolerant of minor typos or variations in reporting.
         - Recognize tests even if they are embedded in sentences or reported in a non-standard way.
         - **Pay special attention to distinguishing between chi-square tests (often denoted as 'χ²' or 'chi2') and F-tests. Example: "𝜒2 (df =97)=80.12, p=.893"**
+        - A chi-sqaure test can also be reported as "G-square", "G^2", or "G2". Example: G2(18) = 17.50, p =.489, is a chi2 test. The test type should still be chi2.
         - **IMPORTANT: "rho" is not the same as "r". Do not interpret "rho" as an "r" test.**
         - Extract the correct operator from the p-value (e.g., '=', '<', '>').
         - For p-values reported with inequality signs (e.g., p < 0.05), extract both the operator ('<') and the numerical value (0.05). This goes for all operators.
@@ -206,6 +209,8 @@ class StatcheckTester:
         - If ANY of the components are missing or unclear, skip that test, especially the test_value.
         - Treat commas in numbers as thousand separators, not decimal points. Remove commas from numbers before extracting them. For example, '16,107' should be extracted as '16107' (sixteen thousand one hundred seven), not '16.107'.
         - Regarding chi2 tests: do not extract the sample size (N).
+        - Only an F-test requires two degrees of freedom (df1, df2). For all other tests, only extract df1.
+        - Do not extract tests that have not been described in this prompt before.
 
         Format the result EXACTLY like this:
 
@@ -411,15 +416,20 @@ class StatcheckTester:
 
                 # Set empty notes based on consistency and gross inconsistency
                 notes_list = []
+                
+                if reported_p_value == 0:
+                    notes_list.append("A p-value is never exaclty 0.")
+                    consistent = False
 
                 if p_value_range[0] is None and test_type == 'f' and df2 is None:
                     notes_list.append("F-test requires two DF. Only one DF provided.")
                     consistent_str = 'Cannot determine'
                 else:
-                    if gross_inconsistency:
-                        notes_list.append("Gross inconsistency: reported p-value and recalculated p-value differ in significance.")
-                    elif not consistent:
-                        notes_list.append("Recalculated p-value does not match the reported p-value.")
+                    if not consistent:
+                        if gross_inconsistency:
+                            notes_list.append("Gross inconsistency: reported p-value and recalculated p-value differ in significance.")
+                        else:
+                            notes_list.append("Recalculated p-value does not match the reported p-value.")
                     consistent_str = "Yes" if consistent else "No"
 
                 # Add note for one-tailed consistency
@@ -464,6 +474,9 @@ class StatcheckTester:
 
 # Usage:
 if __name__ == "__main__":
+    # Record the start time
+    start_time = time.time()
+
     tester = StatcheckTester()
 
     # Prompt the user to provide the file path
@@ -476,7 +489,7 @@ if __name__ == "__main__":
     if file_context:
         # Perform the StatCheck test multiple times (in this case 3) to find the most consistent result
         results_list = []
-        for i in range(3):
+        for i in range(1):
             print(f"Run {i+1} of 3")
             result_df = tester.perform_statcheck_test(file_context)
             if result_df is not None:
@@ -499,3 +512,7 @@ if __name__ == "__main__":
             print(most_common_df)
         else:
             print("Inconsistent results, please run the test again.")
+
+    # Calculate and print the total running time
+    total_time = time.time() - start_time
+    print(f"\nTotal running time: {total_time:.2f} seconds")
