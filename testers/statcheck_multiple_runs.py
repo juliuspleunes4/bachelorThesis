@@ -117,7 +117,6 @@ class StatcheckTester:
 
         return consistent, (p_value_lower, p_value_upper)
 
-
     def get_decimal_places(self, value_str) -> int:
         """
         Function to calculate the number of decimal places in a value, including trailing zeros.
