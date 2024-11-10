@@ -47,18 +47,14 @@ class StatcheckTester:
             - Consistency (True if reported p-value falls within recalculated p-value range, False otherwise).
             - Recalculated valid p-value range (lower, upper).
         """
+        # Check if any critical parameter is None
+        if test_value is None or (test_type in ['t', 'r', 'chi2'] and df1 is None) or (test_type == 'f' and (df1 is None or df2 is None)):
+            return False, (None, None)
+
         # Calculate the rounding boundaries for the test statistic
         rounding_increment = 0.5 * 10 ** (-self.get_decimal_places(str(test_value)))
         lower_test_value = test_value - rounding_increment
         upper_test_value = test_value + rounding_increment - 1e-10
-
-        # Handle missing degrees of freedom for applicable tests
-        if test_type in ['t', 'r', 'chi2'] and df1 is None:
-            # df1 is required for these tests; return an invalid result if missing
-            return False, (None, None)
-        if test_type == 'f' and (df1 is None or df2 is None):
-            # Both df1 and df2 are required for F-tests; return an invalid result if missing
-            return False, (None, None)
 
         # For t-tests and similar, calculate p-values at the lower and upper test_value bounds
         if test_type == 'r':
@@ -116,6 +112,7 @@ class StatcheckTester:
         consistent = self.compare_p_values((p_value_lower, p_value_upper), operator, reported_p_value)
 
         return consistent, (p_value_lower, p_value_upper)
+
 
     def get_decimal_places(self, value_str) -> int:
         """
@@ -387,6 +384,10 @@ class StatcheckTester:
                 reported_p_value = test.get("reported_p_value")
                 tail = test.get("tail")
 
+                # skip if reported p-value is None
+                if reported_p_value is None:
+                    continue
+
                 # Check if "ns" was reported
                 if reported_p_value == "ns":
                     # Handle 'ns' case by skipping calculation
@@ -479,8 +480,6 @@ class StatcheckTester:
                 return None
 
 
-
-
 # Usage:
 if __name__ == "__main__":
     # Record the start time
@@ -498,7 +497,7 @@ if __name__ == "__main__":
     if file_context:
         # Perform the StatCheck test multiple times (in this case 3) to find the most consistent result
         results_list = []
-        for i in range(1):
+        for i in range(3):
             print(f"Run {i+1} of 3")
             result_df = tester.perform_statcheck_test(file_context)
             if result_df is not None:
