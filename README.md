@@ -42,7 +42,7 @@ You can run the GRIM Test and Statcheck scripts by executing their corresponding
 
    Execute `python statcheck-gpt4o-mini.py`
    
-   Execute `python statcheck-multiple_runs.py`if you want to automatically analyse the provided file three times. This improves consistency but increases runtime and costs.
+   Execute `python statcheck_multiple_runs.py`if you want to automatically analyse the provided file three times. This improves consistency but increases runtime and costs.
 
 # GRIM Test
 
