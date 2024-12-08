@@ -95,8 +95,8 @@ Since the reported p-value of `0.059` falls between the recalculated range `0.05
 3. **Extract data**: The `extract_data_from_text` method uses the `GPT-4o-mini` AI model to identify and extract reported statistical tests from the text. The output is formatted according to the specified requirements, so it can be used by other methods in the class. The model extracts the following parameters:
 
     - `test_type`: One of `'r'`, `'t'`, `'f'`, `'chi2'`, `'z'`.
-    - `df1`: First degree of freedom (integer). If not applicable, set to `None`.
-    - `df2`: Second degree of freedom (integer). If not applicable, set to `None`.
+    - `df1`: First degree of freedom (float or integer). If not applicable, set to `None`.
+    - `df2`: Second degree of freedom (float or integer). If not applicable, set to `None`.
     - `test_value`: The test statistic value (float).
     - `operator`: The operator used in the reported p-value (`=`, `<`, `>`).
     - `reported_p_value`: The numerical value of the reported p-value (float).
