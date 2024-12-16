@@ -52,9 +52,11 @@ class StatcheckTester:
             return False, (None, None)
 
         # Calculate the rounding boundaries for the test statistic
-        rounding_increment = 0.5 * 10 ** (-self.get_decimal_places(str(test_value)))
+        decimal_places = max(self.get_decimal_places(str(test_value)), 2)  # Treat 1 decimal as 2
+        rounding_increment = 0.5 * 10 ** (-decimal_places)
         lower_test_value = test_value - rounding_increment
         upper_test_value = test_value + rounding_increment - 1e-10
+
 
         # For t-tests and similar, calculate p-values at the lower and upper test_value bounds
         if test_type == 'r':
@@ -204,7 +206,7 @@ class StatcheckTester:
         - For p-values reported with inequality signs (e.g., p < 0.05), extract both the operator ('<') and the numerical value (0.05). This goes for all operators.
         - Do not perform any calculations or inferences beyond what's explicitly stated.
         - It can occur that a test is split over multiple sentences. Example: "F"(1, 25) = 11.36, MSE = .040, ηp
-        2 = 
+        2 =
         .312, p = .002". Make sure to extract the test correctly, pay close attention to the operator.
         - If ANY of the components are missing or unclear, skip that test, especially the test_value.
         - Treat commas in numbers as thousand separators, not decimal points. Remove commas from numbers before extracting them. For example, '16,107' should be extracted as '16107' (sixteen thousand one hundred seven), not '16.107'.
@@ -424,7 +426,7 @@ class StatcheckTester:
 
                     # Set empty notes based on consistency and gross inconsistency
                     notes_list = []
-                    
+
                     if reported_p_value == 0:
                         notes_list.append("A p-value is never exactly 0.")
                         consistent = False
@@ -452,10 +454,11 @@ class StatcheckTester:
 
                 # Format APA Reporting
                 if df1 is not None:
-                    apa_reporting = f"{test_type}({df1}{', ' + str(df2) if df2 is not None else ''}) = {test_value}"
+                    apa_reporting = f"{test_type}({df1}{', ' + str(df2) if df2 is not None else ''}) = {test_value:.2f}"
                 else:
                     # For z-tests
-                    apa_reporting = f"{test_type} = {test_value}"
+                    apa_reporting = f"{test_type} = {test_value:.2f}"
+
 
                 # Add the test to statcheck_results
                 statcheck_results.append({

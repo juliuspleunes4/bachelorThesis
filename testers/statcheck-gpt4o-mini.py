@@ -11,11 +11,15 @@ import os
 import ast
 import fitz  # PyMuPDF
 from bs4 import BeautifulSoup
+from collections import Counter
+from io import StringIO
+import time
 
 # Set pandas display options for better readability
 pd.set_option('display.max_columns', None)
 pd.set_option('display.width', 10000)
 pd.set_option('display.colheader_justify', 'center')
+pd.set_option('display.max_rows', None)
 
 # Load environment variables from the .env file
 load_dotenv()
@@ -43,10 +47,16 @@ class StatcheckTester:
             - Consistency (True if reported p-value falls within recalculated p-value range, False otherwise).
             - Recalculated valid p-value range (lower, upper).
         """
+        # Check if any critical parameter is None
+        if test_value is None or (test_type in ['t', 'r', 'chi2'] and df1 is None) or (test_type == 'f' and (df1 is None or df2 is None)):
+            return False, (None, None)
+
         # Calculate the rounding boundaries for the test statistic
-        rounding_increment = 0.5 * 10 ** (-self.get_decimal_places(str(test_value)))
+        decimal_places = max(self.get_decimal_places(str(test_value)), 2)  # Treat 1 decimal as 2
+        rounding_increment = 0.5 * 10 ** (-decimal_places)
         lower_test_value = test_value - rounding_increment
         upper_test_value = test_value + rounding_increment - 1e-10
+
 
         # For t-tests and similar, calculate p-values at the lower and upper test_value bounds
         if test_type == 'r':
@@ -67,14 +77,9 @@ class StatcheckTester:
 
         elif test_type == 'f':
             # F-test
-            if df2 is None:
-                # Can't calculate p-value without df2
-                # Return consistent as False, p_value_range as (None, None)
-                return False, (None, None)
-            else:
-                # Calculate p-values at lower and upper test_value bounds
-                p_lower = stats.f.sf(lower_test_value, df1, df2)
-                p_upper = stats.f.sf(upper_test_value, df1, df2)
+            # Calculate p-values at lower and upper test_value bounds
+            p_lower = stats.f.sf(lower_test_value, df1, df2)
+            p_upper = stats.f.sf(upper_test_value, df1, df2)
 
         elif test_type == 'chi2':
             # Chi-square test
@@ -83,7 +88,7 @@ class StatcheckTester:
             p_upper = stats.chi2.sf(upper_test_value, df1)
 
         elif test_type == 'z':
-            # Z-test
+            # Z-test (does not require degrees of freedom)
             # Calculate p-values at lower and upper test_value bounds
             p_lower = stats.norm.sf(abs(lower_test_value))
             p_upper = stats.norm.sf(abs(upper_test_value))
@@ -109,6 +114,7 @@ class StatcheckTester:
         consistent = self.compare_p_values((p_value_lower, p_value_upper), operator, reported_p_value)
 
         return consistent, (p_value_lower, p_value_upper)
+
 
     def get_decimal_places(self, value_str) -> int:
         """
@@ -186,7 +192,7 @@ class StatcheckTester:
         - df2: Second degree of freedom (float or integer). If not applicable, set to None.
         - test_value: The test statistic value (float).
         - operator: The operator used in the reported p-value ('=', '<', '>').
-        - reported_p_value: The numerical value of the reported p-value (float).
+        - reported_p_value: The numerical value of the reported p-value (float) if available, or 'ns' if reported as not significant.
         - tail: 'one' or 'two'. Assume 'two' unless explicitly stated.
 
         Guidelines:
@@ -194,16 +200,21 @@ class StatcheckTester:
         - Be tolerant of minor typos or variations in reporting.
         - Recognize tests even if they are embedded in sentences or reported in a non-standard way.
         - **Pay special attention to distinguishing between chi-square tests (often denoted as 'χ²' or 'chi2') and F-tests. Example: "𝜒2 (df =97)=80.12, p=.893"**
+        - A chi-sqaure test can also be reported as "G-square", "G^2", or "G2". Example: G2(18) = 17.50, p =.489, is a chi2 test. The test type should still be chi2.
         - **IMPORTANT: "rho" is not the same as "r". Do not interpret "rho" as an "r" test.**
         - Extract the correct operator from the p-value (e.g., '=', '<', '>').
         - For p-values reported with inequality signs (e.g., p < 0.05), extract both the operator ('<') and the numerical value (0.05). This goes for all operators.
         - Do not perform any calculations or inferences beyond what's explicitly stated.
         - It can occur that a test is split over multiple sentences. Example: "F"(1, 25) = 11.36, MSE = .040, ηp
-        2 = 
+        2 =
         .312, p = .002". Make sure to extract the test correctly, pay close attention to the operator.
         - If ANY of the components are missing or unclear, skip that test, especially the test_value.
         - Treat commas in numbers as thousand separators, not decimal points. Remove commas from numbers before extracting them. For example, '16,107' should be extracted as '16107' (sixteen thousand one hundred seven), not '16.107'.
         - Regarding chi2 tests: do not extract the sample size (N).
+        - Only an F-test requires two degrees of freedom (df1, df2). For all other tests, only extract df1.
+        - It can occur that a thousand separator (,) is used in the degree(s) of freedom. Example: "r(31,724) = -0.02" has df1 = 31724.
+        - Do not extract tests that have not been described in this prompt before. Example: "B(31,801) = -.030, p <.001" should not be extracted, since the test type 'B' has not been described in the prompt.
+        - Again, never extract other tests than the ones described in this prompt!
 
         Format the result EXACTLY like this:
 
@@ -375,73 +386,85 @@ class StatcheckTester:
                 reported_p_value = test.get("reported_p_value")
                 tail = test.get("tail")
 
-                # Check if all necessary data are present
-                required_fields = [test_type, test_value, operator, reported_p_value, tail]
-                if test_type not in ['z']:
-                    required_fields.append(df1)
-                if None in required_fields:
-                    # Skip the test if any necessary data is missing
+                # skip if reported p-value is None
+                if reported_p_value is None:
                     continue
 
-                # Perform the StatCheck test
-                consistent, p_value_range = self.calculate_p_value(test_type, df1, df2, test_value, operator, reported_p_value, tail)
-
-                # Format Valid P-value Range
-                if p_value_range[0] is not None and p_value_range[1] is not None:
-                    valid_p_value_range_str = f"{p_value_range[0]:.5f} to {p_value_range[1]:.5f}"
-                else:
+                # Check if "ns" was reported
+                if reported_p_value == "ns":
+                    # Handle 'ns' case by skipping calculation
+                    apa_reporting = f"{test_type}({df1}{', ' + str(df2) if df2 is not None else ''}) = {test_value}, ns"
+                    notes = "Reported as ns"
+                    consistent_str = "N/A"  # No consistency check
                     valid_p_value_range_str = "N/A"
 
-                # Determine if reported p-value indicates significance at the 0.05 level
-                reported_significant = self.determine_reported_significance(operator, reported_p_value, significance_level)
-
-                # Determine if recalculated p-value range indicates significance at the 0.05 level
-                if p_value_range[0] is not None and p_value_range[1] is not None:
-                    recalculated_significant = self.determine_recalculated_significance(p_value_range, significance_level)
                 else:
-                    recalculated_significant = None
+                    # Existing consistency check and recalculation code
+                    consistent, p_value_range = self.calculate_p_value(test_type, df1, df2, test_value, operator, reported_p_value, tail)
 
-                # Determine if there is a gross inconsistency (difference in significance)
-                gross_inconsistency = False
-                if reported_significant is not None and recalculated_significant is not None:
-                    if reported_significant != recalculated_significant:
-                        gross_inconsistency = True  # Difference in significance
+                    # Skip the test if valid p-value range could not be calculated
+                    if p_value_range[0] is None and p_value_range[1] is None:
+                        continue
 
-                # Set empty notes based on consistency and gross inconsistency
-                notes_list = []
+                    # Format Valid P-value Range
+                    valid_p_value_range_str = f"{p_value_range[0]:.5f} to {p_value_range[1]:.5f}" if all(p_value_range) else "N/A"
 
-                if p_value_range[0] is None and test_type == 'f' and df2 is None:
-                    notes_list.append("F-test requires two DF. Only one DF provided.")
-                    consistent_str = 'Cannot determine'
-                else:
-                    if gross_inconsistency:
-                        notes_list.append("Gross inconsistency: reported p-value and recalculated p-value differ in significance.")
-                    elif not consistent:
-                        notes_list.append("Recalculated p-value does not match the reported p-value.")
-                    consistent_str = "Yes" if consistent else "No"
+                    # Determine if reported p-value indicates significance at the 0.05 level
+                    reported_significant = self.determine_reported_significance(operator, reported_p_value, significance_level)
 
-                # Add note for one-tailed consistency
-                if test_type in ['t', 'z', 'r'] and not consistent:
-                    if tail == 'two':
-                        # Recalculate consistency assuming tail='one'
-                        consistent_one_tailed, _ = self.calculate_p_value(test_type, df1, df2, test_value, operator, reported_p_value, tail='one')
-                        if consistent_one_tailed:
-                            notes_list.append("Consistent for one-tailed, inconsistent for two-tailed")
+                    # Determine if recalculated p-value range indicates significance at the 0.05 level
+                    if p_value_range[0] is not None and p_value_range[1] is not None:
+                        recalculated_significant = self.determine_recalculated_significance(p_value_range, significance_level)
+                    else:
+                        recalculated_significant = None
 
-                notes = "-" if not notes_list else " ".join(notes_list)
+                    # Determine if there is a gross inconsistency (difference in significance)
+                    gross_inconsistency = False
+                    if reported_significant is not None and recalculated_significant is not None:
+                        if reported_significant != recalculated_significant:
+                            gross_inconsistency = True  # Difference in significance
+
+                    # Set empty notes based on consistency and gross inconsistency
+                    notes_list = []
+
+                    if reported_p_value == 0:
+                        notes_list.append("A p-value is never exactly 0.")
+                        consistent = False
+
+                    if p_value_range[0] is None and test_type == 'f' and df2 is None:
+                        notes_list.append("F-test requires two DF. Only one DF provided.")
+                        consistent_str = 'Cannot determine'
+                    else:
+                        if not consistent:
+                            if gross_inconsistency:
+                                notes_list.append("Gross inconsistency: reported p-value and recalculated p-value differ in significance.")
+                            else:
+                                notes_list.append("Recalculated p-value does not match the reported p-value.")
+                        consistent_str = "Yes" if consistent else "No"
+
+                    # Add note for one-tailed consistency
+                    if test_type in ['t', 'z', 'r'] and not consistent:
+                        if tail == 'two':
+                            # Recalculate consistency assuming tail='one'
+                            consistent_one_tailed, _ = self.calculate_p_value(test_type, df1, df2, test_value, operator, reported_p_value, tail='one')
+                            if consistent_one_tailed:
+                                notes_list.append("Consistent for one-tailed, inconsistent for two-tailed")
+
+                    notes = "-" if not notes_list else " ".join(notes_list)
 
                 # Format APA Reporting
                 if df1 is not None:
-                    apa_reporting = f"{test_type}({df1}{', ' + str(df2) if df2 is not None else ''}) = {test_value}"
+                    apa_reporting = f"{test_type}({df1}{', ' + str(df2) if df2 is not None else ''}) = {test_value:.2f}"
                 else:
                     # For z-tests
-                    apa_reporting = f"{test_type} = {test_value}"
+                    apa_reporting = f"{test_type} = {test_value:.2f}"
+
 
                 # Add the test to statcheck_results
                 statcheck_results.append({
                     "Consistent": consistent_str,
                     "APA Reporting": apa_reporting,
-                    "Reported P-value": f"{operator} {reported_p_value}",
+                    "Reported P-value": f"{operator} {reported_p_value}" if reported_p_value != "ns" else "ns",
                     "Valid P-value Range": valid_p_value_range_str,
                     "Notes": notes
                 })
@@ -454,11 +477,17 @@ class StatcheckTester:
                 # Set display options for better readability
                 pd.set_option('display.max_colwidth', None)
 
-                print(df_statcheck_results)
+                # Return instead of printing so the results can be compared
+                return df_statcheck_results
+            else:
+                return None
 
 
 # Usage:
 if __name__ == "__main__":
+    # Record the start time
+    start_time = time.time()
+
     tester = StatcheckTester()
 
     # Prompt the user to provide the file path
@@ -469,4 +498,32 @@ if __name__ == "__main__":
 
     # If context segments were successfully read, extract the data and perform the StatCheck test
     if file_context:
-        tester.perform_statcheck_test(file_context)
+        # Perform the StatCheck test multiple times (in this case 3) to find the most consistent result
+        results_list = []
+        for i in range(1):
+            print(f"Run {i+1} of 1")
+            result_df = tester.perform_statcheck_test(file_context)
+            if result_df is not None:
+                results_list.append(result_df)
+            else:
+                print("No results in this run.")
+
+        # Compare the results and find the most frequent one
+        # Convert each DataFrame to a string representation
+        results_str_list = [df.to_csv(index=False) for df in results_list]
+        # Count the frequencies
+        counts = Counter(results_str_list)
+        # Find the most common result
+        if counts:
+            most_common_result_str, frequency = counts.most_common(1)[0]
+            # Convert the string back to a DataFrame
+            most_common_df = pd.read_csv(StringIO(most_common_result_str))
+            # Display the most frequent result
+            print("\nMost frequent result:")
+            print(most_common_df)
+        else:
+            print("Inconsistent results, please run the test again.")
+
+    # Calculate and print the total running time
+    total_time = time.time() - start_time
+    print(f"\nTotal running time: {total_time:.2f} seconds")
