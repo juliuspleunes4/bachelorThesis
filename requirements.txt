@@ -1,5 +1,6 @@
-openai
-pandas
-python-dotenv
-fitz
-scipy
+openai==1.43.1
+pandas==2.2.3
+scipy==1.5.4
+python-dotenv==1.0.1
+PyMuPDF==1.24.10
+beautifulsoup4==4.11.2
