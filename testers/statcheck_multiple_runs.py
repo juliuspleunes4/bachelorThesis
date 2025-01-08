@@ -1,25 +1,26 @@
 """
-StatCheck Tester.
-Use AI to automatically extract reported statistical tests from scientific text and perform the StatCheck to check for inconsistencies.
+statcheck Tester.
+Use AI to automatically extract reported statistical tests from scientific text and perform the statcheck to check for inconsistencies.
 """
 
+import ast
+import os
+import time
+from collections import Counter
+from io import StringIO
+
+import fitz  # PyMuPDF
 import openai
 import pandas as pd
 import scipy.stats as stats
-from dotenv import load_dotenv
-import os
-import ast
-import fitz  # PyMuPDF
 from bs4 import BeautifulSoup
-from collections import Counter
-from io import StringIO
-import time
+from dotenv import load_dotenv
 
 # Set pandas display options for better readability
-pd.set_option('display.max_columns', None)
-pd.set_option('display.width', 10000)
-pd.set_option('display.colheader_justify', 'center')
-pd.set_option('display.max_rows', None)
+pd.set_option("display.max_columns", None)
+pd.set_option("display.width", 10000)
+pd.set_option("display.colheader_justify", "center")
+pd.set_option("display.max_rows", None)
 
 # Load environment variables from the .env file
 load_dotenv()
@@ -28,11 +29,13 @@ load_dotenv()
 class StatcheckTester:
     def __init__(self):
         # Retrieve the OpenAI API key from the .env file
-        self.api_key = os.getenv('OPENAI_API_KEY')
+        self.api_key = os.getenv("OPENAI_API_KEY")
         self.client = openai.Client()  # Initialize the OpenAI client
         openai.api_key = self.api_key  # Set the OpenAI API key
 
-    def calculate_p_value(self, test_type, df1, df2, test_value, operator, reported_p_value, tail='two') -> tuple:
+    def calculate_p_value(
+        self, test_type, df1, df2, test_value, operator, reported_p_value, tail="two"
+    ) -> tuple:
         """
         Calculate the valid p-value range for different statistical tests.
 
@@ -48,46 +51,55 @@ class StatcheckTester:
             - Recalculated valid p-value range (lower, upper).
         """
         # Check if any critical parameter is None
-        if test_value is None or (test_type in ['t', 'r', 'chi2'] and df1 is None) or (test_type == 'f' and (df1 is None or df2 is None)):
+        if (
+            test_value is None
+            or (test_type in ["t", "r", "chi2"] and df1 is None)
+            or (test_type == "f" and (df1 is None or df2 is None))
+        ):
             return False, (None, None)
 
         # Calculate the rounding boundaries for the test statistic
-        decimal_places = max(self.get_decimal_places(str(test_value)), 2)  # Treat 1 decimal as 2
+        decimal_places = max(
+            self.get_decimal_places(str(test_value)), 2
+        )  # Treat 1 decimal as 2
         rounding_increment = 0.5 * 10 ** (-decimal_places)
         lower_test_value = test_value - rounding_increment
         upper_test_value = test_value + rounding_increment - 1e-10
 
-
         # For t-tests and similar, calculate p-values at the lower and upper test_value bounds
-        if test_type == 'r':
+        if test_type == "r":
             # Correlation test (r)
             # Convert to t-values
-            t_lower = lower_test_value * ((df1) ** 0.5) / ((1 - lower_test_value ** 2) ** 0.5)
-            t_upper = upper_test_value * ((df1) ** 0.5) / ((1 - upper_test_value ** 2) ** 0.5)
+            t_lower = (
+                lower_test_value * ((df1) ** 0.5) / ((1 - lower_test_value**2) ** 0.5)
+            )
+            t_upper = (
+                upper_test_value * ((df1) ** 0.5) / ((1 - upper_test_value**2) ** 0.5)
+            )
 
             # Calculate p-values at lower and upper test_value bounds
             p_lower = stats.t.sf(abs(t_lower), df1)
             p_upper = stats.t.sf(abs(t_upper), df1)
 
-        elif test_type == 't':
+        elif test_type == "t":
             # t-test
             # Calculate p-values at lower and upper test_value bounds
             p_lower = stats.t.sf(abs(lower_test_value), df1)
             p_upper = stats.t.sf(abs(upper_test_value), df1)
 
-        elif test_type == 'f':
+        elif test_type == "f":
             # F-test
             # Calculate p-values at lower and upper test_value bounds
             p_lower = stats.f.sf(lower_test_value, df1, df2)
             p_upper = stats.f.sf(upper_test_value, df1, df2)
 
-        elif test_type == 'chi2':
+        elif test_type == "chi2":
             # Chi-square test
             # Calculate p-values at lower and upper test_value bounds
             p_lower = stats.chi2.sf(lower_test_value, df1)
             p_upper = stats.chi2.sf(upper_test_value, df1)
 
-        elif test_type == 'z':
+        elif test_type == "z":
             # Z-test (does not require degrees of freedom)
             # Calculate p-values at lower and upper test_value bounds
             p_lower = stats.norm.sf(abs(lower_test_value))
@@ -98,12 +110,12 @@ class StatcheckTester:
             return False, (None, None)
 
         # Adjust for one-tailed or two-tailed tests where applicable (not for chi2 and f)
-        if test_type not in ['chi2', 'f']:
-            if tail == 'two':
+        if test_type not in ["chi2", "f"]:
+            if tail == "two":
                 # For two-tailed tests, double the one-tailed p-value
                 p_lower = min(p_lower * 2, 1)
                 p_upper = min(p_upper * 2, 1)
-            elif tail != 'one':
+            elif tail != "one":
                 return False, (None, None)
 
         # Ensure p_lower is the smaller p-value
@@ -111,10 +123,11 @@ class StatcheckTester:
         p_value_upper = max(p_lower, p_upper)
 
         # Compare recalculated p-values with the reported p-value
-        consistent = self.compare_p_values((p_value_lower, p_value_upper), operator, reported_p_value)
+        consistent = self.compare_p_values(
+            (p_value_lower, p_value_upper), operator, reported_p_value
+        )
 
         return consistent, (p_value_lower, p_value_upper)
-
 
     def get_decimal_places(self, value_str) -> int:
         """
@@ -123,13 +136,15 @@ class StatcheckTester:
         :param value_str: The string representation of the value.
         :return: The number of decimal places in the value.
         """
-        if '.' in value_str:
-            return len(value_str.split('.')[1])
+        if "." in value_str:
+            return len(value_str.split(".")[1])
 
         else:
             return 0
 
-    def compare_p_values(self, recalculated_p_value_range, operator, reported_value) -> bool:
+    def compare_p_values(
+        self, recalculated_p_value_range, operator, reported_value
+    ) -> bool:
         """
         Compare recalculated valid p-value range with reported p-value.
 
@@ -141,19 +156,19 @@ class StatcheckTester:
         # Unpack the recalculated p-value range from the tuple
         p_value_lower, p_value_upper = recalculated_p_value_range
 
-        if operator == '<':
+        if operator == "<":
             # Return True if lower bound is less than reported value
             if p_value_lower < reported_value:
                 return True
 
-        elif operator == '>':
+        elif operator == ">":
             # Return True if upper bound is greater than reported value
             if p_value_upper > reported_value:
                 return True
 
-        elif operator == '=':
+        elif operator == "=":
             # Determine the rounding boundaries for the reported p-value
-            if '.' in str(reported_value):
+            if "." in str(reported_value):
                 decimal_places = self.get_decimal_places(str(reported_value))
             else:
                 decimal_places = 0
@@ -233,19 +248,26 @@ class StatcheckTester:
         response = self.client.chat.completions.create(
             model="gpt-4o-mini",
             messages=[
-                {"role": "system", "content": "You are an assistant that extracts statistical test values from scientific text."},
-                {"role": "user", "content": prompt}
+                {
+                    "role": "system",
+                    "content": "You are an assistant that extracts statistical test values from scientific text.",
+                },
+                {"role": "user", "content": prompt},
             ],
             temperature=0.0,
         )
 
-        response_content = response.choices[0].message.content  # Choose the first response from the OpenAI API
-        response_content = response_content.replace('```python', '').replace('```', '').strip()  # Clean up the response
+        response_content = response.choices[
+            0
+        ].message.content  # Choose the first response from the OpenAI API
+        response_content = (
+            response_content.replace("```python", "").replace("```", "").strip()
+        )  # Clean up the response
 
         # Check if the response contains the expected format
         if response_content.startswith("tests ="):
             # Remove the 'tests =' part, only the list of dictionaries is preserved, still in string format
-            response_content = response_content[len("tests = "):].strip()
+            response_content = response_content[len("tests = ") :].strip()
         else:
             print("Error: The response does not contain the expected format.")
             return None
@@ -264,25 +286,27 @@ class StatcheckTester:
             # Remove any extra whitespace and get the file extension in lowercase
             file_extension = os.path.splitext(file_path.strip())[-1].lower()
 
-            if file_extension == '.txt':
-                with open(file_path, 'r', encoding='utf-8') as file:
+            if file_extension == ".txt":
+                with open(file_path, "r", encoding="utf-8") as file:
                     text = file.read()
-            elif file_extension == '.pdf':
+            elif file_extension == ".pdf":
                 # Use PyMuPDF to extract text from PDF
-                text = ''
+                text = ""
                 with fitz.open(file_path) as doc:
                     for page_num in range(len(doc)):
                         page = doc[page_num]
                         page_text = page.get_text()
                         if page_text:
-                            text += page_text + '\n'
-            elif file_extension in ('.html', '.htm'):
+                            text += page_text + "\n"
+            elif file_extension in (".html", ".htm"):
                 # Use BeautifulSoup to extract text from HTML or HTM
-                with open(file_path, 'r', encoding='utf-8') as file:
-                    soup = BeautifulSoup(file, 'html.parser')
-                    text = soup.get_text(separator=' ')
+                with open(file_path, "r", encoding="utf-8") as file:
+                    soup = BeautifulSoup(file, "html.parser")
+                    text = soup.get_text(separator=" ")
             else:
-                print("Unsupported file format. Please provide a .txt, .pdf, .html, or .htm file.")
+                print(
+                    "Unsupported file format. Please provide a .txt, .pdf, .html, or .htm file."
+                )
                 return []
 
             # Split the text into words
@@ -296,8 +320,8 @@ class StatcheckTester:
             i = 0
             while i < len(words):
                 # Extract a segment with overlap
-                segment = words[i:i + max_words]
-                segments.append(' '.join(segment))
+                segment = words[i : i + max_words]
+                segments.append(" ".join(segment))
                 # Move the index forward by max_words minus overlap
                 i += max_words - overlap
 
@@ -306,7 +330,9 @@ class StatcheckTester:
             print("The file was not found. Please provide a valid file path.")
             return []
 
-    def determine_reported_significance(self, operator, reported_p_value, significance_level) -> bool:
+    def determine_reported_significance(
+        self, operator, reported_p_value, significance_level
+    ) -> bool:
         """
         Determine the significance of the REPORTED p-value based on the provided operator and significance level.
 
@@ -314,12 +340,12 @@ class StatcheckTester:
         :param reported_p_value: The numerical value of the reported p-value.
         :return: True if significant, False if not significant.
         """
-        if operator == '=' or operator == '<':
+        if operator == "=" or operator == "<":
             if reported_p_value <= significance_level:
                 return True
             else:
                 return False
-        elif operator == '>':
+        elif operator == ">":
             if reported_p_value >= significance_level:
                 return False
             else:
@@ -327,7 +353,9 @@ class StatcheckTester:
         else:
             return False  # Invalid operator
 
-    def determine_recalculated_significance(self, p_value_range, significance_level) -> bool:
+    def determine_recalculated_significance(
+        self, p_value_range, significance_level
+    ) -> bool:
         """
         Determine the significance of the RECALCULATED p-value range based on the significance level.
 
@@ -346,10 +374,10 @@ class StatcheckTester:
 
     def perform_statcheck_test(self, file_context) -> None:
         """
-        Extract test data from context segment(s) and perform StatCheck.
+        Extract test data from context segment(s) and perform statcheck.
 
         :param context_segments: A list of context segments.
-        :return: None, prints the results of the StatCheck test.
+        :return: None, prints the results of the statcheck test.
         """
         significance_level = 0.05  # Hardcode the significance level at 0.05
         all_tests = []
@@ -373,7 +401,7 @@ class StatcheckTester:
                 # No valid test data found in the segment
                 continue
 
-        # Perform the StatCheck test for each extracted test
+        # Perform the statcheck test for each extracted test
         if all_tests:
             statcheck_results = []
 
@@ -400,27 +428,48 @@ class StatcheckTester:
 
                 else:
                     # Existing consistency check and recalculation code
-                    consistent, p_value_range = self.calculate_p_value(test_type, df1, df2, test_value, operator, reported_p_value, tail)
+                    consistent, p_value_range = self.calculate_p_value(
+                        test_type,
+                        df1,
+                        df2,
+                        test_value,
+                        operator,
+                        reported_p_value,
+                        tail,
+                    )
 
                     # Skip the test if valid p-value range could not be calculated
                     if p_value_range[0] is None and p_value_range[1] is None:
                         continue
 
                     # Format Valid P-value Range
-                    valid_p_value_range_str = f"{p_value_range[0]:.5f} to {p_value_range[1]:.5f}" if all(p_value_range) else "N/A"
+                    valid_p_value_range_str = (
+                        f"{p_value_range[0]:.5f} to {p_value_range[1]:.5f}"
+                        if all(p_value_range)
+                        else "N/A"
+                    )
 
                     # Determine if reported p-value indicates significance at the 0.05 level
-                    reported_significant = self.determine_reported_significance(operator, reported_p_value, significance_level)
+                    reported_significant = self.determine_reported_significance(
+                        operator, reported_p_value, significance_level
+                    )
 
                     # Determine if recalculated p-value range indicates significance at the 0.05 level
                     if p_value_range[0] is not None and p_value_range[1] is not None:
-                        recalculated_significant = self.determine_recalculated_significance(p_value_range, significance_level)
+                        recalculated_significant = (
+                            self.determine_recalculated_significance(
+                                p_value_range, significance_level
+                            )
+                        )
                     else:
                         recalculated_significant = None
 
                     # Determine if there is a gross inconsistency (difference in significance)
                     gross_inconsistency = False
-                    if reported_significant is not None and recalculated_significant is not None:
+                    if (
+                        reported_significant is not None
+                        and recalculated_significant is not None
+                    ):
                         if reported_significant != recalculated_significant:
                             gross_inconsistency = True  # Difference in significance
 
@@ -431,24 +480,40 @@ class StatcheckTester:
                         notes_list.append("A p-value is never exactly 0.")
                         consistent = False
 
-                    if p_value_range[0] is None and test_type == 'f' and df2 is None:
-                        notes_list.append("F-test requires two DF. Only one DF provided.")
-                        consistent_str = 'Cannot determine'
+                    if p_value_range[0] is None and test_type == "f" and df2 is None:
+                        notes_list.append(
+                            "F-test requires two DF. Only one DF provided."
+                        )
+                        consistent_str = "Cannot determine"
                     else:
                         if not consistent:
                             if gross_inconsistency:
-                                notes_list.append("Gross inconsistency: reported p-value and recalculated p-value differ in significance.")
+                                notes_list.append(
+                                    "Gross inconsistency: reported p-value and recalculated p-value differ in significance."
+                                )
                             else:
-                                notes_list.append("Recalculated p-value does not match the reported p-value.")
+                                notes_list.append(
+                                    "Recalculated p-value does not match the reported p-value."
+                                )
                         consistent_str = "Yes" if consistent else "No"
 
                     # Add note for one-tailed consistency
-                    if test_type in ['t', 'z', 'r'] and not consistent:
-                        if tail == 'two':
+                    if test_type in ["t", "z", "r"] and not consistent:
+                        if tail == "two":
                             # Recalculate consistency assuming tail='one'
-                            consistent_one_tailed, _ = self.calculate_p_value(test_type, df1, df2, test_value, operator, reported_p_value, tail='one')
+                            consistent_one_tailed, _ = self.calculate_p_value(
+                                test_type,
+                                df1,
+                                df2,
+                                test_value,
+                                operator,
+                                reported_p_value,
+                                tail="one",
+                            )
                             if consistent_one_tailed:
-                                notes_list.append("Consistent for one-tailed, inconsistent for two-tailed")
+                                notes_list.append(
+                                    "Consistent for one-tailed, inconsistent for two-tailed"
+                                )
 
                     notes = "-" if not notes_list else " ".join(notes_list)
 
@@ -459,23 +524,36 @@ class StatcheckTester:
                     # For z-tests
                     apa_reporting = f"{test_type} = {test_value:.2f}"
 
-
                 # Add the test to statcheck_results
-                statcheck_results.append({
-                    "Consistent": consistent_str,
-                    "APA Reporting": apa_reporting,
-                    "Reported P-value": f"{operator} {reported_p_value}" if reported_p_value != "ns" else "ns",
-                    "Valid P-value Range": valid_p_value_range_str,
-                    "Notes": notes
-                })
+                statcheck_results.append(
+                    {
+                        "Consistent": consistent_str,
+                        "APA Reporting": apa_reporting,
+                        "Reported P-value": (
+                            f"{operator} {reported_p_value}"
+                            if reported_p_value != "ns"
+                            else "ns"
+                        ),
+                        "Valid P-value Range": valid_p_value_range_str,
+                        "Notes": notes,
+                    }
+                )
 
             # Display the results in a DataFrame
             if statcheck_results:
                 df_statcheck_results = pd.DataFrame(statcheck_results)
-                df_statcheck_results = df_statcheck_results[["Consistent", "APA Reporting", "Reported P-value", "Valid P-value Range", "Notes"]]
+                df_statcheck_results = df_statcheck_results[
+                    [
+                        "Consistent",
+                        "APA Reporting",
+                        "Reported P-value",
+                        "Valid P-value Range",
+                        "Notes",
+                    ]
+                ]
 
                 # Set display options for better readability
-                pd.set_option('display.max_colwidth', None)
+                pd.set_option("display.max_colwidth", None)
 
                 # Return instead of printing so the results can be compared
                 return df_statcheck_results
@@ -491,16 +569,18 @@ if __name__ == "__main__":
     tester = StatcheckTester()
 
     # Prompt the user to provide the file path
-    file_path = input("Please provide the file path to the context you want to analyse:\n")
+    file_path = input(
+        "Please provide the file path to the context you want to analyse:\n"
+    )
 
     # Read the context segments from the provided file path
     file_context = tester.read_context_from_file(file_path)
 
-    # If context segments were successfully read, extract the data and perform the StatCheck test
+    # If context segments were successfully read, extract the data and perform the statcheck test
     if file_context:
-        # Perform the StatCheck test multiple times (in this case 3) to find the most consistent result
+        #  Perform the statcheck test multiple times (in this case 3) to find the most consistent result
         results_list = []
-        for i in range(3):
+        for i in range(1):
             print(f"Run {i+1} of 3")
             result_df = tester.perform_statcheck_test(file_context)
             if result_df is not None:

@@ -3,12 +3,13 @@ GRIM (Granularity-Related Inconsistency of Means) Test.
 Use AI to automatically extract reported means and sample sizes from scientific text and perform the GRIM test to check for inconsistencies.
 """
 
+import ast
+import os
+
+import fitz  # PyMuPDF
 import openai
 import pandas as pd
 from dotenv import load_dotenv
-import os
-import ast
-import fitz  # PyMuPDF
 
 # Load environment variables from the .env file
 load_dotenv()
@@ -17,11 +18,13 @@ load_dotenv()
 class GRIMTester:
     def __init__(self):
         # Retrieve the OpenAI API key from the .env file
-        self.api_key = os.getenv('OPENAI_API_KEY')
+        self.api_key = os.getenv("OPENAI_API_KEY")
         self.client = openai.Client()  # Initialize the OpenAI client
         openai.api_key = self.api_key  # Set the OpenAI API key
 
-    def grim_test(self, reported_mean: float, sample_size: int, decimals: int = 2) -> bool:
+    def grim_test(
+        self, reported_mean: float, sample_size: int, decimals: int = 2
+    ) -> bool:
         """
         Check if the reported mean is mathematically possible given the sample size and a specified number of decimal places.
 
@@ -34,7 +37,10 @@ class GRIMTester:
         possible_sum_1 = int(total_sum)  # Round down
         possible_sum_2 = possible_sum_1 + 1  # Round up
 
-        if round(possible_sum_1 / sample_size, decimals) == reported_mean or round(possible_sum_2 / sample_size, decimals) == reported_mean:
+        if (
+            round(possible_sum_1 / sample_size, decimals) == reported_mean
+            or round(possible_sum_2 / sample_size, decimals) == reported_mean
+        ):
             return True
         else:
             return False
@@ -46,16 +52,16 @@ class GRIMTester:
         :param value_str: The string representation of the reported mean.
         :return: The number of decimal places in the reported mean.
         """
-        if '.' in value_str:
-            return len(value_str.split('.')[1])
+        if "." in value_str:
+            return len(value_str.split(".")[1])
         else:
             return 0
 
     def extract_data_from_text(self, context) -> str:
         """
-        Send context to the gpt-4o-mini model to extract reported means and sample sizes. 
+        Send context to the gpt-4o-mini model to extract reported means and sample sizes.
         The model will return test entries formatted like:
-    
+
         tests = [
             {{"reported_mean": "<mean>", "sample_size": <size>}},
             ...
@@ -94,19 +100,26 @@ class GRIMTester:
         response = self.client.chat.completions.create(
             model="gpt-4o-mini",
             messages=[
-                {"role": "system", "content": "You are an assistant that extracts mean values from scientific text."},
-                {"role": "user", "content": prompt}
+                {
+                    "role": "system",
+                    "content": "You are an assistant that extracts mean values from scientific text.",
+                },
+                {"role": "user", "content": prompt},
             ],
             temperature=0.0,
         )
 
-        response_content = response.choices[0].message.content  # Choose the first response from the OpenAI API
-        response_content = response_content.replace('```python', '').replace('```', '').strip()  # Clean up the response
+        response_content = response.choices[
+            0
+        ].message.content  # Choose the first response from the OpenAI API
+        response_content = (
+            response_content.replace("```python", "").replace("```", "").strip()
+        )  # Clean up the response
 
         # Check if the response contains the expected format
         if response_content.startswith("tests ="):
             # Remove the 'tests =' part, only the list of dictionaries is preserved, still in string format
-            response_content = response_content[len("tests = "):].strip()
+            response_content = response_content[len("tests = ") :].strip()
         else:
             print("Error: The response does not contain the expected format.")
             return None
@@ -122,18 +135,18 @@ class GRIMTester:
         :return: A list of context segments, each as a string.
         """
         try:
-            if file_path.endswith('.txt'):
-                with open(file_path, 'r', encoding='utf-8') as file:
+            if file_path.endswith(".txt"):
+                with open(file_path, "r", encoding="utf-8") as file:
                     text = file.read()
-            elif file_path.endswith('.pdf'):
+            elif file_path.endswith(".pdf"):
                 # Use PyMuPDF to extract text from PDF
-                text = ''
+                text = ""
                 with fitz.open(file_path) as doc:
                     for page_num in range(len(doc)):
                         page = doc[page_num]
                         page_text = page.get_text()
                         if page_text:
-                            text += page_text + '\n'
+                            text += page_text + "\n"
             else:
                 print("Unsupported file format. Please provide a .txt or .pdf file.")
                 return []
@@ -143,7 +156,10 @@ class GRIMTester:
             # Maximum words per segment
             max_words = 500
             # Split words into segments
-            segments = [' '.join(words[i:i + max_words]) for i in range(0, len(words), max_words)]
+            segments = [
+                " ".join(words[i : i + max_words])
+                for i in range(0, len(words), max_words)
+            ]
             return segments
         except FileNotFoundError:
             print("The file was not found. Please provide a valid file path.")
@@ -168,7 +184,7 @@ class GRIMTester:
                 # Convert the extracted data from a string to a list of dictionaries
                 tests = ast.literal_eval(test_data)
                 all_tests.extend(tests)
-            else:  
+            else:
                 # No valid test data found in the segment
                 continue
 
@@ -177,34 +193,49 @@ class GRIMTester:
             grim_test_results = []
 
             for test in all_tests:
-                reported_mean_str = test["reported_mean"]  # Keep the string with trailing zeros
-                reported_mean_float = float(reported_mean_str)  # Convert to float for calculation
+                reported_mean_str = test[
+                    "reported_mean"
+                ]  # Keep the string with trailing zeros
+                reported_mean_float = float(
+                    reported_mean_str
+                )  # Convert to float for calculation
                 sample_size = test["sample_size"]
 
-                decimals = self.get_decimal_places(reported_mean_str)  # Pass string to preserve decimal count
-                passed_grim_test = self.grim_test(reported_mean_float, sample_size, decimals)
+                decimals = self.get_decimal_places(
+                    reported_mean_str
+                )  # Pass string to preserve decimal count
+                passed_grim_test = self.grim_test(
+                    reported_mean_float, sample_size, decimals
+                )
 
-                grim_test_results.append({
-                    "Consistent": "Yes" if passed_grim_test else "No",
-                    "Reported Mean": reported_mean_str,  # Use original string to show correct decimals
-                    "Sample Size": sample_size,
-                    "Decimals": decimals
-                })
+                grim_test_results.append(
+                    {
+                        "Consistent": "Yes" if passed_grim_test else "No",
+                        "Reported Mean": reported_mean_str,  # Use original string to show correct decimals
+                        "Sample Size": sample_size,
+                        "Decimals": decimals,
+                    }
+                )
 
             # Display the results in a DataFrame
             df_grim_results = pd.DataFrame(grim_test_results)
-            df_grim_results = df_grim_results[["Consistent", "Reported Mean", "Sample Size", "Decimals"]]
+            df_grim_results = df_grim_results[
+                ["Consistent", "Reported Mean", "Sample Size", "Decimals"]
+            ]
 
             print(df_grim_results)
         else:
             print("No valid test data to process.")
+
 
 # Usage:
 if __name__ == "__main__":
     tester = GRIMTester()
 
     # Prompt the user to provide the file path
-    file_path = input("Please provide the file path to the context you want to analyse:\n")
+    file_path = input(
+        "Please provide the file path to the context you want to analyse:\n"
+    )
 
     # Read the context segments from the provided file path
     file_context = tester.read_context_from_file(file_path)
