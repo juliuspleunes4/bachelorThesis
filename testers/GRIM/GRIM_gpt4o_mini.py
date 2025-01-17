@@ -181,7 +181,7 @@ class GRIMTester:
                 reported_mean_float = float(reported_mean_str)  # Convert to float for calculation
                 sample_size = test["sample_size"]
 
-                decimals = self.get_decimal_places(reported_mean_str)  # Pass string to preserve decimal count
+                decimals = max(self.get_decimal_places(reported_mean_str), 2)  # Ensure at least 2 decimal places
                 passed_grim_test = self.grim_test(reported_mean_float, sample_size, decimals)
 
                 grim_test_results.append(
