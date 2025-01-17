@@ -37,10 +37,12 @@ You can run the GRIM Test and Statcheck scripts by executing their corresponding
 
  - To run the **GRIM Test**:
    
-   Execute `python GRIM-gpt4o-mini.py`
+   Execute `python GRIM_gpt4o_mini.py`
+    
+   Execute `python GRIM_gpt4o_mini_segmentation.py`if you want to divide the file contents into segments of 500 words each with an overlap of 8 words per segment.
  - To run **Statcheck**:
 
-   Execute `python statcheck-gpt4o-mini.py`
+   Execute `python statcheck_gpt4o_mini.py`
    
    Execute `python statcheck_multiple_runs.py`if you want to automatically analyse the provided file three times. This improves consistency but increases runtime and costs.
 
@@ -55,7 +57,7 @@ The GRIM Test (Granularity-Related Inconsistency of Means) is a tool for detecti
 ## How it Works
 
 1. **Central class**: The `GRIMTester` class contains all methods for reading context from files, extracting reported means, conducting the GRIM test, and presenting results.
-2. **Convert**: The `.pdf` file gets converted into plain text. `.txt` files are already in plain text.
+2. **Convert**: The `.pdf`, `.htm` or `.html` file gets converted into plain text. `.txt` files are already in plain text.
    
 3. **Extract data**: The `extract_data_from_text` method uses the `GPT-4o-mini` AI model to identify and extract reported means and sample sizes from the text. The model is inscructed to only extract means that are composed of integer data. The output is formatted according to the specified requirements, so it can be used by other methods in the class.
 
@@ -129,7 +131,7 @@ Since the reported p-value of `0.059` falls between the recalculated range `0.05
 # Known Issues
 ## GRIM-Related Issues
 - The AI integration in the script has issues in correctly identifying when a mean is composed of integer values or floating-point values. This means that it is likely that certain mean values get analysed by the script, even though they do not qualify for GRIM analysis, as they are not derived from integer data. 
-- The AI integration in the script has issues correctly correlating the correct sample size to the according mean value when there is (quite) some context between the two mentions in the text.
+- The AI integration in the script has issues correctly correlating the correct sample size to the according mean value when there is (quite) some context between the two mentions in the text. Both GRIM-related files, `GRIM_gpt4o_mini.py` and `GRIM_gpt4o_mini_segmentation.py`struggle with this. When no segmentation is used, i.e., `GRIM_gpt4o_mini.py` is used, the context window usually becomes too large for the script to properly function. When segmentation is used, another problem occurs: sample size and mean values are often not reported in the same (relatively small) segment. That means it becomes impossible to properly link the sample size to its corresponding mean value.
 
 ## Statcheck-Related Issues
 - **Typesetting issues**: In some journals, mathematical symbols such as `<` are replaced by an image of this symbol, which can’t be converted to plain text. This means that the correct operator cannot be extracted, meaning the script has to fill in an operator itself. Usually, the script fills in the `=` operator, which is likely to be incorrect.
