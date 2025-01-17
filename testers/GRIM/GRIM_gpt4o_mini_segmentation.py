@@ -9,7 +9,14 @@ import os
 import fitz  # PyMuPDF
 import openai
 import pandas as pd
+from bs4 import BeautifulSoup
 from dotenv import load_dotenv
+
+# Set pandas display options for better readability
+pd.set_option("display.max_columns", None)
+pd.set_option("display.width", 10000)
+pd.set_option("display.colheader_justify", "center")
+pd.set_option("display.max_rows", None)
 
 # Load environment variables from the .env file
 load_dotenv()
@@ -22,9 +29,7 @@ class GRIMTester:
         self.client = openai.Client()  # Initialize the OpenAI client
         openai.api_key = self.api_key  # Set the OpenAI API key
 
-    def grim_test(
-        self, reported_mean: float, sample_size: int, decimals: int = 2
-    ) -> bool:
+    def grim_test(self, reported_mean: float, sample_size: int, decimals: int = 2) -> bool:
         """
         Check if the reported mean is mathematically possible given the sample size and a specified number of decimal places.
 
@@ -37,10 +42,8 @@ class GRIMTester:
         possible_sum_1 = int(total_sum)  # Round down
         possible_sum_2 = possible_sum_1 + 1  # Round up
 
-        if (
-            round(possible_sum_1 / sample_size, decimals) == reported_mean
-            or round(possible_sum_2 / sample_size, decimals) == reported_mean
-        ):
+        if (round(possible_sum_1 / sample_size, decimals) == reported_mean
+        or round(possible_sum_2 / sample_size, decimals) == reported_mean):
             return True
         else:
             return False
@@ -72,18 +75,18 @@ class GRIMTester:
         """
         prompt = f"""
         Extract ALL relevant reported means and sample sizes from the following text. Ensure that each extracted mean is based on integer data (e.g., Likert scale responses or other whole-number responses). Do not extract means that are based on continuous or floating-point data such as mean differences, survey completion times, or medians. **NEVER consider medians or other central tendencies, only means.**
-
         Again, only consider means that are COMPOSED OF INTEGER DATA. This has to be explicitly stated in the text.
-
         **IMPORTANT: Do NOT extract any statistical test values such as t-values, F-values, chi-square values (χ²), z-values, correlation coefficients (r-values), or any other test statistics. These are not means and should be ignored.**
-
         Do not perform any calculations. Simply identify and extract means that are composed of integer data, such as Likert-scale responses where individual responses are whole numbers, but keep the mean values exactly as reported (with decimal points if applicable). **NEVER CONSIDER MEDIANS OR OTHER CENTRAL TENDENCIES!**
-
         At every mean found, check again what the correlating sample size is. If not directly apparent, check if the sample size was mentioned earlier. Check if the initial sample size was split into groups, and if so, how many groups there were. For instance, check if there is an experimental condition and a control condition, and if so, how many participants were in each group.
-
         Extract ONLY the reported means and their corresponding sample sizes from the following text. **Do NOT extract medians, mean differences, survey completion times, statistical test values (like t-values, F-values, etc.), or any other central tendencies like median, mode, or ranges. Focus only on the values explicitly described as MEAN.**
-
         Make sure you extract every relevant mean down to the last decimal place, ALWAYS INCLUDE TRAILING ZEROS. If a mean is reported as 6.60, make sure to extract it as 6.60, not 6.6.
+        A sample size is never 0!
+
+        For each test, extract the following components:
+
+        - reported_mean: The mean value reported in the study. (float)
+        - sample_size: The number (N) of samples in the study. (int)
 
         Format the result EXACTLY like this:
         tests = [
@@ -100,8 +103,7 @@ class GRIMTester:
         response = self.client.chat.completions.create(
             model="gpt-4o-mini",
             messages=[
-                {
-                    "role": "system",
+                {"role": "system",
                     "content": "You are an assistant that extracts mean values from scientific text.",
                 },
                 {"role": "user", "content": prompt},
@@ -109,12 +111,8 @@ class GRIMTester:
             temperature=0.0,
         )
 
-        response_content = response.choices[
-            0
-        ].message.content  # Choose the first response from the OpenAI API
-        response_content = (
-            response_content.replace("```python", "").replace("```", "").strip()
-        )  # Clean up the response
+        response_content = response.choices[0].message.content  # Choose the first response from the OpenAI API
+        response_content = (response_content.replace("```python", "").replace("```", "").strip())  # Clean up the response
 
         # Check if the response contains the expected format
         if response_content.startswith("tests ="):
@@ -129,16 +127,19 @@ class GRIMTester:
 
     def read_context_from_file(self, file_path) -> list:
         """
-        Reads the context from a .txt or .pdf file and splits it into segments.
+        Reads the context from a .txt, .pdf, .html, or .htm file and splits it into segments.
 
         :param file_path: The path to the file containing the context.
         :return: A list of context segments, each as a string.
         """
         try:
-            if file_path.endswith(".txt"):
+            # Remove any extra whitespace and get the file extension in lowercase
+            file_extension = os.path.splitext(file_path.strip())[-1].lower()
+
+            if file_extension == ".txt":
                 with open(file_path, "r", encoding="utf-8") as file:
                     text = file.read()
-            elif file_path.endswith(".pdf"):
+            elif file_extension == ".pdf":
                 # Use PyMuPDF to extract text from PDF
                 text = ""
                 with fitz.open(file_path) as doc:
@@ -147,19 +148,31 @@ class GRIMTester:
                         page_text = page.get_text()
                         if page_text:
                             text += page_text + "\n"
+            elif file_extension in (".html", ".htm"):
+                # Use BeautifulSoup to extract text from HTML or HTM
+                with open(file_path, "r", encoding="utf-8") as file:
+                    soup = BeautifulSoup(file, "html.parser")
+                    text = soup.get_text(separator=" ")
             else:
-                print("Unsupported file format. Please provide a .txt or .pdf file.")
+                print("Unsupported file format. Please provide a .txt, .pdf, .html, or .htm file.")
                 return []
 
             # Split the text into words
             words = text.split()
             # Maximum words per segment
             max_words = 500
-            # Split words into segments
-            segments = [
-                " ".join(words[i : i + max_words])
-                for i in range(0, len(words), max_words)
-            ]
+            # Number of words to overlap between segments
+            overlap = 8
+            # Split words into overlapping segments
+            segments = []
+            i = 0
+            while i < len(words):
+                # Extract a segment with overlap
+                segment = words[i : i + max_words]
+                segments.append(" ".join(segment))
+                # Move the index forward by max_words minus overlap
+                i += max_words - overlap
+
             return segments
         except FileNotFoundError:
             print("The file was not found. Please provide a valid file path.")
@@ -174,7 +187,6 @@ class GRIMTester:
         """
         all_tests = []
 
-        # Use enumerate to get the index of the segment
         # Iterate over each segment in the file_context
         for idx, context in enumerate(file_context):
             print(f"Processing segment {idx + 1}/{len(file_context)}...")
@@ -193,20 +205,17 @@ class GRIMTester:
             grim_test_results = []
 
             for test in all_tests:
-                reported_mean_str = test[
-                    "reported_mean"
-                ]  # Keep the string with trailing zeros
-                reported_mean_float = float(
-                    reported_mean_str
-                )  # Convert to float for calculation
+                reported_mean_str = str(test["reported_mean"])  # Ensure it's a string
+                reported_mean_float = float(reported_mean_str)  # Convert to float for calculations
                 sample_size = test["sample_size"]
 
-                decimals = self.get_decimal_places(
-                    reported_mean_str
-                )  # Pass string to preserve decimal count
-                passed_grim_test = self.grim_test(
-                    reported_mean_float, sample_size, decimals
-                )
+                # Skip tests with invalid sample_size
+                if sample_size <= 0:
+                    print(f"Skipping test with invalid sample size: {sample_size}")
+                    continue
+
+                decimals = self.get_decimal_places(reported_mean_str)  # Pass string to preserve decimal count
+                passed_grim_test = self.grim_test(reported_mean_float, sample_size, decimals)
 
                 grim_test_results.append(
                     {
@@ -219,9 +228,7 @@ class GRIMTester:
 
             # Display the results in a DataFrame
             df_grim_results = pd.DataFrame(grim_test_results)
-            df_grim_results = df_grim_results[
-                ["Consistent", "Reported Mean", "Sample Size", "Decimals"]
-            ]
+            df_grim_results = df_grim_results[["Consistent", "Reported Mean", "Sample Size", "Decimals"]]
 
             print(df_grim_results)
         else:
@@ -233,9 +240,7 @@ if __name__ == "__main__":
     tester = GRIMTester()
 
     # Prompt the user to provide the file path
-    file_path = input(
-        "Please provide the file path to the context you want to analyse:\n"
-    )
+    file_path = input("Please provide the file path to the context you want to analyse:\n")
 
     # Read the context segments from the provided file path
     file_context = tester.read_context_from_file(file_path)
