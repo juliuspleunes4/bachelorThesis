@@ -122,7 +122,7 @@ Since the reported p-value of `0.059` falls between the recalculated range `0.05
    - `APA Reporting`: Displays the correct APA reporting of the detected test, regardless of how the test is reported in the context.
    - `Reported P-value`: The p-value as originally reported in the text.
    - `Valid P-value Range`: The range of valid p-values (lower, upper) based on the test type, test value and degrees of freedom.
-   - `Notes`: Any additional information regarding the result, such as the presence of gross or regular inconsistencies.
+   - `Notes`: Any additional information regarding the result, such as the presence of gross or regular inconsistencies or the usage of a statistical correction.
 
 
 # Important Tips
