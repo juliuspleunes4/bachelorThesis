@@ -110,7 +110,7 @@ Since the reported p-value of `0.059` falls between the recalculated range `0.05
     - `epsilon` is not `None`.
     - `df1` & `df2` are `integers`.
   
-    If there is an `epsilon` value reported, but `df1` & `df2` are not `integers`, this could imply the degrees of freedom have already been multiplied by the `epsilon` value. Therefore, the script does not apply the correction again.
+    If there is an `epsilon` value reported, but `df1` & `df2` are not `integers`, this may imply the degrees of freedom have already been adjusted by the the `epsilon` value. In this case, the script does not reapply the correction.
 
 10. **p-Value calculation**: The `calculate_p_value` method calculates a valid range of p-values (lower, upper).
 
