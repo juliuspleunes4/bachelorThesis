@@ -94,7 +94,7 @@ Since the reported p-value of `0.059` falls between the recalculated range `0.05
 3. **Segmentation and overlap**: The plain text is then split into segments of 500 words each, with an overlap of 8 words between consecutive segments. Using segmentation, the script does a much better job at correctly identifying all statistical tests in the entire context. The overlap ensures that each statistical test is detected, even if the test spans multiple segments (`test X` starts at the end of segment `n`, it ends at the begin of segment `n + 1`).
 
    
-3. **Extract data**: The `extract_data_from_text` method uses the `GPT-4o-mini` AI model to identify and extract reported statistical tests from the text. The output is formatted according to the specified requirements, so it can be used by other methods in the class. The model extracts the following parameters:
+4. **Extract data**: The `extract_data_from_text` method uses the `GPT-4o-mini` AI model to identify and extract reported statistical tests from the text. The output is formatted according to the specified requirements, so it can be used by other methods in the class. The model extracts the following parameters:
 
     - `test_type`: One of `'r'`, `'t'`, `'f'`, `'chi2'`, `'z'`.
     - `df1`: First degree of freedom (float or integer). If not applicable, set to `None`.
@@ -102,13 +102,21 @@ Since the reported p-value of `0.059` falls between the recalculated range `0.05
     - `test_value`: The test statistic value (float).
     - `operator`: The operator used in the reported p-value (`=`, `<`, `>`).
     - `reported_p_value`: The numerical value of the reported p-value (float).
+    - `epsilon`: Only applicable for Huynh-Feldt corrections (float). If not applicable, set to `None`.
     - `tail`: `'one'` or `'two'`. Assume `'two'` unless explicitly stated.
 
-5. **p-Value calculation**: The `calculate_p_value` method calculates a valid range of p-values (lower, upper).
+5. **Apply statistical correction (if applicable)**: Currently, the script can only account for Huynh-Feldt corrections. It automatically applies this correction when the following conditions apply:
+    - `test_type` == `f`.
+    - `epsilon` is not `None`.
+    - `df1` & `df2` are `integers`.
+  
+    If there is an `epsilon` value reported, but `df1` & `df2` are not `integers`, this could imply the degrees of freedom have already been multiplied by the `epsilon` value. Therefore, the script does not apply the correction again.
 
-7. **Consistency checking**: The `compare_p_value` method checks the reported p-value falls within the range of the valid p-values (lower, upper). The script also makes a distinction between _gross inconsistencies_ and _regular inconsistencies_.
+10. **p-Value calculation**: The `calculate_p_value` method calculates a valid range of p-values (lower, upper).
 
-8. **Processing results**: After extraction and testing, the results are added into a DataFrame and printed. Each test is displayed in a separate row with the following column headers:
+11. **Consistency checking**: The `compare_p_value` method checks the reported p-value falls within the range of the valid p-values (lower, upper). The script also makes a distinction between _gross inconsistencies_ and _regular inconsistencies_.
+
+12. **Processing results**: After extraction and testing, the results are added into a DataFrame and printed. Each test is displayed in a separate row with the following column headers:
 
    - `Consistent`: Indicates whether the reported p-value falls within the valid recalculated range (`Yes` for consistent, `No` for inconsistent).
    - `APA Reporting`: Displays the correct APA reporting of the detected test, regardless of how the test is reported in the context.
