@@ -33,7 +33,8 @@ class StatcheckTester:
         self.client = openai.Client()  # Initialize the OpenAI client
         openai.api_key = self.api_key  # Set the OpenAI API key
 
-    def calculate_p_value(self, test_type, df1, df2, test_value, operator, reported_p_value, tail="two") -> tuple:
+
+    def calculate_p_value(self, test_type, df1, df2, test_value, operator, reported_p_value, epsilon, tail="two") -> tuple:
         """
         Calculate the valid p-value range for different statistical tests.
 
@@ -43,6 +44,7 @@ class StatcheckTester:
         :param test_value: The test statistic value.
         :param operator: The operator used in the reported p-value ('=', '<', '>').
         :param reported_p_value: The numerical value of the reported p-value.
+        :param epsilon: The epsilon value for Huynh-Feldt correction (use None if not applicable).
         :param tail: Specify 'one' for one-tailed test or 'two' for two-tailed test (default is 'two').
         :return: Tuple containing:
             - Consistency (True if reported p-value falls within recalculated p-value range, False otherwise).
@@ -78,10 +80,17 @@ class StatcheckTester:
             p_upper = stats.t.sf(abs(upper_test_value), df1)
 
         elif test_type == "f":
-            # F-test
-            # Calculate p-values at lower and upper test_value bounds
-            p_lower = stats.f.sf(lower_test_value, df1, df2)
-            p_upper = stats.f.sf(upper_test_value, df1, df2)
+            # Only apply the Huynh-Feldt correction if epsilon is not None and df1, df2 are both integers
+            if epsilon is not None and isinstance(df1, int) and isinstance(df2, int):
+                corrected_df1 = epsilon * df1
+                corrected_df2 = epsilon * df2
+                p_lower = stats.f.sf(lower_test_value, corrected_df1, corrected_df2)
+                p_upper = stats.f.sf(upper_test_value, corrected_df1, corrected_df2)
+            else:
+                # Standard F-test (or df1/df2 are already floats, implying correction was applied previously)
+                p_lower = stats.f.sf(lower_test_value, df1, df2)
+                p_upper = stats.f.sf(upper_test_value, df1, df2)
+
 
         elif test_type == "chi2":
             # Chi-square test
@@ -124,6 +133,9 @@ class StatcheckTester:
         :param value_str: The string representation of the value.
         :return: The number of decimal places in the value.
         """
+        # Base case: if there is no decimal point, return 0
+        if "." not in value_str:
+            return 0
         if "." in value_str:
             return len(value_str.split(".")[1])
 
@@ -194,6 +206,7 @@ class StatcheckTester:
         - test_value: The test statistic value (float).
         - operator: The operator used in the reported p-value ('=', '<', '>').
         - reported_p_value: The numerical value of the reported p-value (float) if available, or 'ns' if reported as not significant.
+        - epsilon (float): Only extract when a Huynh-Feldt correction is mentioned. If not applicable, set to None.
         - tail: 'one' or 'two'. Assume 'two' unless explicitly stated.
 
         Guidelines:
@@ -216,11 +229,12 @@ class StatcheckTester:
         - It can occur that a thousand separator (,) is used in the degree(s) of freedom. Example: "r(31,724) = -0.02" has df1 = 31724.
         - Do not extract tests that have not been described in this prompt before. Example: "B(31,801) = -.030, p <.001" should not be extracted, since the test type 'B' has not been described in the prompt.
         - Again, never extract other tests than the ones described in this prompt!
+        - Only extract an epsilon value if it is explicitly mentioned in the context AND if a Huynh-Feldt correction was applied. Otherwise, set epsilon to None.
 
         Format the result EXACTLY like this:
 
         tests = [
-            {{"test_type": "<test_type>", "df1": <df1>, "df2": <df2>, "test_value": <test_value>, "operator": "<operator>", "reported_p_value": <reported_p_value>, "tail": "<tail>"}},
+            {{"test_type": <test_type>, "df1": <df1>, "df2": <df2>, "test_value": <test_value>, "operator": <operator>, "reported_p_value": <reported_p_value>, "epsilon": <epsilon>, "tail": <tail>}},
             ...
         ]
 
@@ -349,8 +363,8 @@ class StatcheckTester:
         """
         Extract test data from context segment(s) and perform statcheck.
 
-        :param context_segments: A list of context segments.
-        :return: None, prints the results of the statcheck test.
+        :param file_context: A list of context segments.
+        :return: A pandas DataFrame containing the statcheck results (or None if no results).
         """
         significance_level = 0.05  # Hardcode the significance level at 0.05
         all_tests = []
@@ -385,6 +399,7 @@ class StatcheckTester:
                 test_value = test.get("test_value")
                 operator = test.get("operator")
                 reported_p_value = test.get("reported_p_value")
+                epsilon = test.get("epsilon")
                 tail = test.get("tail")
 
                 # skip if reported p-value is None
@@ -400,7 +415,7 @@ class StatcheckTester:
                     valid_p_value_range_str = "N/A"
 
                 else:
-                    # Existing consistency check and recalculation code
+                    # Consistency check and recalculation code
                     consistent, p_value_range = self.calculate_p_value(
                         test_type,
                         df1,
@@ -408,6 +423,7 @@ class StatcheckTester:
                         test_value,
                         operator,
                         reported_p_value,
+                        epsilon if (test_type == "f" and epsilon is not None and isinstance(df1, int) and isinstance(df2, int)) else None,
                         tail,
                     )
 
@@ -427,7 +443,7 @@ class StatcheckTester:
 
                     # Determine if recalculated p-value range indicates significance at the 0.05 level
                     if p_value_range[0] is not None and p_value_range[1] is not None:
-                        recalculated_significant = (self.determine_recalculated_significance(p_value_range, significance_level))
+                        recalculated_significant = self.determine_recalculated_significance(p_value_range, significance_level)
                     else:
                         recalculated_significant = None
 
@@ -466,19 +482,31 @@ class StatcheckTester:
                                 test_value,
                                 operator,
                                 reported_p_value,
+                                None,  # No epsilon for t, z, or r
                                 tail="one",
                             )
                             if consistent_one_tailed:
                                 notes_list.append("Consistent for one-tailed, inconsistent for two-tailed")
 
-                    notes = "-" if not notes_list else " ".join(notes_list)
-
                 # Format APA Reporting
-                if df1 is not None:
+                if (
+                    test_type == "f"
+                    and epsilon is not None
+                    and isinstance(df1, int)
+                    and isinstance(df2, int)
+                ):
+                    # Round new df values to 2 decimals
+                    corrected_df1 = round(epsilon * df1, 2)
+                    corrected_df2 = round(epsilon * df2, 2)
+                    apa_reporting = f"{test_type}({corrected_df1}, {corrected_df2}) = {test_value:.2f}"
+                    notes_list.append(f"Degrees of freedom were adjusted due to a Huynh-Feldt correction. Epsilon = {epsilon}")
+                elif df1 is not None:
                     apa_reporting = f"{test_type}({df1}{', ' + str(df2) if df2 is not None else ''}) = {test_value:.2f}"
                 else:
-                    # For z-tests
+                    # For z-tests or any test not requiring df
                     apa_reporting = f"{test_type} = {test_value:.2f}"
+
+                notes = "-" if not notes_list else " ".join(notes_list)
 
                 # Add the test to statcheck_results
                 statcheck_results.append(
