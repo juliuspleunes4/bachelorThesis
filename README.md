@@ -94,7 +94,7 @@ Since the reported p-value of `0.059` falls between the recalculated range `0.05
 3. **Segmentation and overlap**: The plain text is then split into segments of 500 words each, with an overlap of 8 words between consecutive segments. Using segmentation, the script does a much better job at correctly identifying all statistical tests in the entire context. The overlap ensures that each statistical test is detected, even if the test spans multiple segments (`test X` starts at the end of segment `n`, it ends at the begin of segment `n + 1`).
 
    
-4. **Extract data**: The `extract_data_from_text` method uses the `GPT-4o-mini` AI model to identify and extract reported statistical tests from the text. The output is formatted according to the specified requirements, so it can be used by other methods in the class. The model extracts the following parameters:
+4. **Extract data**: The `extract_data_from_text` method uses the `GPT-4o-mini` AI model to identify and extract reported statistical tests from the text. This method transforms unstructured data (tests found in the text) into structured data: a Python list of dictionaries. Each extracted test is represented as a dictionary with the following keys:
 
     - `test_type`: One of `'r'`, `'t'`, `'f'`, `'chi2'`, `'z'`.
     - `df1`: First degree of freedom (float or integer). If not applicable, set to `None`.
