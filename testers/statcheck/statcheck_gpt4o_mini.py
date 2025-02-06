@@ -408,9 +408,11 @@ class StatcheckTester:
 
                 # Check if "ns" was reported
                 if reported_p_value == "ns":
+                    # Initialize notes_list
+                    notes_list = ["Reported as ns"]
+
                     # Handle 'ns' case by skipping calculation
                     apa_reporting = f"{test_type}({df1}{', ' + str(df2) if df2 is not None else ''}) = {test_value}, ns"
-                    notes = "Reported as ns"
                     consistent_str = "N/A"  # No consistency check
                     valid_p_value_range_str = "N/A"
 
