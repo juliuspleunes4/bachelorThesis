@@ -145,3 +145,7 @@ Since the reported p-value of `0.059` falls between the recalculated range `0.05
 - **Typesetting issues**: In some journals, mathematical symbols such as `<` are replaced by an image of this symbol, which can’t be converted to plain text. This means that the correct operator cannot be extracted, meaning the script has to fill in an operator itself. Usually, the script fills in the `=` operator, which is likely to be incorrect.
 - **Statistical corrections**: The script does not take statistical corrections (described in the context) into account. The script only tries to identify which tail to use (`'one'` or `'two'`) based on the context. A feature which tries to correct for statistical corrections could be implemented at a later stage, but is currently not in place. 
 
+# Code Quality
+All code is compliant with the [Ruff linter](https://docs.astral.sh/ruff/).
+
+
