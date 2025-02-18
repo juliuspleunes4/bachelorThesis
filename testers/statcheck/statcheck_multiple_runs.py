@@ -564,7 +564,7 @@ if __name__ == "__main__":
     if file_context:
         #  Perform the statcheck test multiple times (in this case 3) to find the most consistent result
         results_list = []
-        for i in range(1):
+        for i in range(3):
             print(f"Run {i+1} of 3")
             result_df = tester.perform_statcheck_test(file_context)
             if result_df is not None:
