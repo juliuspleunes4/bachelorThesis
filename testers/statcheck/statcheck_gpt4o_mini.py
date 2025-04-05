@@ -15,6 +15,7 @@ import pandas as pd
 import scipy.stats as stats
 from bs4 import BeautifulSoup
 from dotenv import load_dotenv
+from openai import OpenAI
 
 # Set pandas display options for better readability
 pd.set_option("display.max_columns", None)
@@ -30,7 +31,7 @@ class StatcheckTester:
     def __init__(self):
         # Retrieve the OpenAI API key from the .env file
         self.api_key = os.getenv("OPENAI_API_KEY")
-        self.client = openai.Client()  # Initialize the OpenAI client
+        self.client = OpenAI()  # Initialize the OpenAI client
         openai.api_key = self.api_key  # Set the OpenAI API key
 
 
@@ -121,8 +122,21 @@ class StatcheckTester:
         p_value_lower = min(p_lower, p_upper)
         p_value_upper = max(p_lower, p_upper)
 
-        # Compare recalculated p-values with the reported p-value
-        consistent = self.compare_p_values((p_value_lower, p_value_upper), operator, reported_p_value)
+        # Handle reported_p_value being 'ns'
+        if reported_p_value == "ns":
+            return False, (p_value_lower, p_value_upper)
+
+        # Convert reported_p_value to numeric if possible
+        try:
+            reported_p_value = float(reported_p_value)
+        except ValueError:
+            # Cannot convert to numeric
+            return False, (None, None)
+
+        consistent = self.compare_p_values(
+            (p_value_lower, p_value_upper), operator, reported_p_value
+        )
+
 
         return consistent, (p_value_lower, p_value_upper)
 
@@ -403,7 +417,7 @@ class StatcheckTester:
                 tail = test.get("tail")
 
                 # skip if reported p-value is None
-                if reported_p_value is None:
+                if reported_p_value is None or test_value is None:
                     continue
 
                 # Check if "ns" was reported
