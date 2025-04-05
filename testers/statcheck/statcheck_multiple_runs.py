@@ -15,6 +15,7 @@ import pandas as pd
 import scipy.stats as stats
 from bs4 import BeautifulSoup
 from dotenv import load_dotenv
+from openai import OpenAI
 
 # Set pandas display options for better readability
 pd.set_option("display.max_columns", None)
@@ -30,7 +31,7 @@ class StatcheckTester:
     def __init__(self):
         # Retrieve the OpenAI API key from the .env file
         self.api_key = os.getenv("OPENAI_API_KEY")
-        self.client = openai.Client()  # Initialize the OpenAI client
+        self.client = OpenAI()  # Initialize the OpenAI client
         openai.api_key = self.api_key  # Set the OpenAI API key
 
 
@@ -121,8 +122,21 @@ class StatcheckTester:
         p_value_lower = min(p_lower, p_upper)
         p_value_upper = max(p_lower, p_upper)
 
-        # Compare recalculated p-values with the reported p-value
-        consistent = self.compare_p_values((p_value_lower, p_value_upper), operator, reported_p_value)
+        # Handle reported_p_value being 'ns'
+        if reported_p_value == "ns":
+            return False, (p_value_lower, p_value_upper)
+
+        # Convert reported_p_value to numeric if possible
+        try:
+            reported_p_value = float(reported_p_value)
+        except ValueError:
+            # Cannot convert to numeric
+            return False, (None, None)
+
+        consistent = self.compare_p_values(
+            (p_value_lower, p_value_upper), operator, reported_p_value
+        )
+
 
         return consistent, (p_value_lower, p_value_upper)
 
@@ -183,18 +197,6 @@ class StatcheckTester:
                 return False
 
     def extract_data_from_text(self, context) -> str:
-        """
-        Send context to the gpt-4o-mini model to extract reported statistical tests.
-        The model will return the extracted statistical tests as a list of dictionaries (still in string format).
-        The list of dictionaries will look like this:
-        tests = [
-            {"test_type": "<test_type>", "df1": <df1>, "df2": <df2>, "test_value": <test_value>, "operator": "<operator>", "reported_p_value": <reported_p_value>, "tail": "<tail>"},
-            ...
-        ]
-
-        :param context: The scientific text containing reported statistical tests.
-        :return: The extracted test data as a string.
-        """
         prompt = f"""
         You are an AI assistant that extracts statistical test results from scientific text.
 
@@ -211,6 +213,10 @@ class StatcheckTester:
 
         Guidelines:
 
+        - Do not extract any tests that does not EXPLICITY mention one of the predetermined test types (e.g., t, r, f, chi2, z).
+        - Do not extract test that are incomplete (i.e., the minimal requirements are: test_type, df1, test_value, operator, reported_p_value).
+        - If you are not completely certain that a test meets the minimal requirements (e.g., test_type is not explicity mentioned), do not extract it.
+        - You must never infer or assume test types, degrees of freedom, or test values based on contextual clues, reported means, or p-values. Only extract statistical tests that are explicitly reported in APA format and contain a clearly labeled test type (e.g., “t”, “z”, “f”, etc.).
         - Be tolerant of minor typos or variations in reporting.
         - Recognize tests even if they are embedded in sentences or reported in a non-standard way.
         - **Pay special attention to distinguishing between chi-square tests (often denoted as 'χ²' or 'chi2') and F-tests. Example: "𝜒2 (df =97)=80.12, p=.893"**
@@ -403,7 +409,7 @@ class StatcheckTester:
                 tail = test.get("tail")
 
                 # skip if reported p-value is None
-                if reported_p_value is None:
+                if reported_p_value is None or test_value is None:
                     continue
 
                 # Check if "ns" was reported
@@ -562,7 +568,7 @@ if __name__ == "__main__":
 
     # If context segments were successfully read, extract the data and perform the statcheck test
     if file_context:
-        #  Perform the statcheck test multiple times (in this case 3) to find the most consistent result
+        #  Perform the statcheck three times to check for consistency
         results_list = []
         for i in range(3):
             print(f"Run {i+1} of 3")

@@ -225,6 +225,10 @@ class StatcheckTester:
 
         Guidelines:
 
+        - Do not extract any tests that does not EXPLICITY mention one of the predetermined test types (e.g., t, r, f, chi2, z).
+        - Do not extract test that are incomplete (i.e., the minimal requirements are: test_type, df1, test_value, operator, reported_p_value).
+        - If you are not completely certain that a test meets the minimal requirements (e.g., test_type is not explicity mentioned), do not extract it.
+        - You must never infer or assume test types, degrees of freedom, or test values based on contextual clues, reported means, or p-values. Only extract statistical tests that are explicitly reported in APA format and contain a clearly labeled test type (e.g., “t”, “z”, “f”, etc.).
         - Be tolerant of minor typos or variations in reporting.
         - Recognize tests even if they are embedded in sentences or reported in a non-standard way.
         - **Pay special attention to distinguishing between chi-square tests (often denoted as 'χ²' or 'chi2') and F-tests. Example: "𝜒2 (df =97)=80.12, p=.893"**
