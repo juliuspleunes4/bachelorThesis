@@ -25,7 +25,7 @@ The GitHub page for the R package of `statcheck` created by Michèle Nuijten can
 # Getting Started
 
 ## Installation
-First, download the source code from this repository. Make sure Python 3.10.11 is installed, using which you can install all dependencies by executing `pip install -r requirements.txt` in the root directory of this project. After all dependencies have successfully installed, create a `.env` file in the root directory of the project. This file should contain your environment variables. For this project, only the OpenAI API key is relevant. The `.env` file should be formattted as follows:
+First, clone the repository using Git. Make sure Python 3.10.11 is installed. Then, in the root directory of the project, install all dependencies by running: `pip install -r requirements.txt` in the root directory of this project. After all dependencies have successfully installed, create a `.env` file in the root directory of the project. This file should contain your environment variables. For this project, only the OpenAI API key is relevant. The `.env` file should be formattted as follows:
 
 `OPENAI_API_KEY = "your_openai_api_key_here"`
 
