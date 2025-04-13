@@ -111,7 +111,6 @@ class GRIMTester:
         ---
 
         Additional rules:
-        - Do not infer sample sizes from statistical test degrees of freedom (e.g., t(28) does not imply N=29).
         - If the total sample is split into groups (e.g., experimental/control), extract group-level means and sample sizes separately.
         - NEVER round mean values — extract them **exactly as reported**, preserving **all decimal places and trailing zeros** (e.g., keep `6.60`, not `6.6`).
         - Do **not** perform any calculations. Only extract what is explicitly stated in the text.
