@@ -25,7 +25,7 @@ The GitHub page for the R package of `statcheck` created by Michèle Nuijten can
 # Getting Started
 
 ## Installation
-First, download the source code from this repository. Make sure Python 3.9.7 is installed, using which you can install all dependencies by executing `pip install -r requirements.txt` in the root directory of this project. After all dependencies have successfully installed, create a `.env` file in the root directory of the project. This file should contain your environment variables. For this project, only the OpenAI API key is relevant. The `.env` file should be formattted as follows:
+First, clone the repository using Git. Make sure Python 3.10.11 is installed. Then, in the root directory of the project, install all dependencies by running: `pip install -r requirements.txt` in the root directory of this project. After all dependencies have successfully installed, create a `.env` file in the root directory of the project. This file should contain your environment variables. For this project, only the OpenAI API key is relevant. The `.env` file should be formattted as follows:
 
 `OPENAI_API_KEY = "your_openai_api_key_here"`
 
@@ -112,7 +112,7 @@ Since the reported p-value of `0.059` falls between the recalculated range `0.05
   
     If there is an `epsilon` value reported, but `df1` & `df2` are not `integers`, this may imply the degrees of freedom have already been adjusted by the the `epsilon` value. In this case, the script does not reapply the correction.
 
-10. **p-Value calculation**: The `calculate_p_value` method calculates a valid range of p-values (lower, upper).
+10. **p-Value calculation**: The `calculate_p_value` method calculates a valid range of p-values (lower, upper) for each extracted test based on its parameters.
 
 11. **Consistency checking**: The `compare_p_value` method checks the reported p-value falls within the range of the valid p-values (lower, upper). The script also makes a distinction between _gross inconsistencies_ and _regular inconsistencies_.
 
