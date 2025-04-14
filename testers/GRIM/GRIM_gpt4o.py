@@ -23,7 +23,6 @@ pd.set_option("display.max_colwidth", None)
 # Load environment variables from the .env file
 load_dotenv()
 
-
 class GRIMTester:
     def __init__(self):
         # Retrieve the OpenAI API key from the .env file
@@ -88,6 +87,7 @@ class GRIMTester:
         - The value is explicitly labeled as a **mean** (e.g., “M = ...”, “mean = ...”).
         - The mean is clearly based on **integer-valued response data** (e.g., responses on Likert-type scales like 1–5, 1–7, etc.).
         - A specific **sample size (N)** is provided in the same sentence, or in a directly connected clause or phrase.
+            - IMPORTANT: A SAMPLE SIZE IS ALWAYS AN INTEGER! DO NOT EXTRACT IF THE SAMPLE SIZE IS NOT AN INTEGER!
         - There is a **clear and direct correlation** between the reported mean and its corresponding sample size — do not guess or assume this link.
         - The mean is usable in the **GRIM test** (i.e., based on whole-number responses + a known sample size).
         - The source of the mean is explicitly mentioned (e.g., "mean of Likert-scale responses", "mean of 7-point scale", "mean survey response").
@@ -116,7 +116,8 @@ class GRIMTester:
         - Do **not** perform any calculations. Only extract what is explicitly stated in the text.
 
         ---
-
+        IMPORTANT: The output must be a JSON-like list of dictionaries, formatted as follows:
+        YOU ARE NEVER ALLOWED TO CHANGE THIS FORMAT!
         Output format:
 
         tests = [
