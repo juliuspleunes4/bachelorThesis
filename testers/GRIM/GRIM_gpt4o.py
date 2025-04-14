@@ -158,9 +158,6 @@ class GRIMTester:
         if response_content.startswith("json"):
             response_content = response_content[4:].strip()
 
-        # print response_content per segment
-        print(f"Response content: {response_content}")
-
         if response_content.startswith("tests ="):
             return response_content[len("tests = ") :].strip()
         else:
