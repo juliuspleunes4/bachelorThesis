@@ -148,13 +148,13 @@ Since the reported _p_-value of `0.059` falls between the recalculated range `0.
 
 # Important Tips
 
-- **API Key**: Ensure that you have an OpenAI API key stored in your `.env` file under the variable `OPENAI_API_KEY` for the code to work. Without an OpenAI API key, the code cannot use the `extract_data_from_text` method, which means the code cannot extract the relevant data from the context. 
+- **API key**: Ensure that you have an OpenAI API key stored in your `.env` file under the variable `OPENAI_API_KEY` for the code to work. Without an OpenAI API key, the code cannot use the `extract_data_from_text` method, which means the code cannot extract the relevant data from the context. 
 
-- **Decimal Places**: Both the GRIM test and Statcheck respect the number of decimal places in the reported data. Keep this in mind when interpreting the results.
+- **Decimal places**: Both the GRIM test and Statcheck respect the number of decimal places in the reported data. Keep this in mind when interpreting the results.
 
-- **Decimal Separator**: Both the GRIM test and Statcheck only recognize a dot `.` as a valid decimal separator. A comma `,` is regarded as thousand separator. For example, `'10,159'` is interpreted as 'ten thousand one hundred fifty-nine', not 'ten point one five nine'.
+- **Decimal separator**: Both the GRIM test and Statcheck only recognize a dot `.` as a valid decimal separator. A comma `,` is regarded as thousand separator. For example, `'10,159'` is interpreted as 'ten thousand one hundred fifty-nine', not 'ten point one five nine'.
 
-- **Error Handling**: The script includes basic error handling for file formats and extraction issues. Make sure to check the console for any error messages if something goes wrong.
+- **Error handling**: The script includes basic error handling for file formats and extraction issues. Make sure to check the console for any error messages if something goes wrong.
 
 
 # Known Issues
