@@ -1,39 +1,50 @@
 """
-statcheck Tester.
+Core logic for extracting statistical tests and running AI-powered statcheck.
 Use AI to automatically extract reported statistical tests from scientific text and perform the statcheck to check for inconsistencies.
+
+Credits
+-------
+Functionality is heavlity inspired by the original statcheck tool, created by Michèle Nuijten.
+(https://github.com/MicheleNuijten/statcheck)
+(https://michelenuijten.shinyapps.io/statcheck-web/)
 """
 
 import ast
 import os
-import time
-from collections import Counter
-from io import StringIO
 
-import fitz  # PyMuPDF
+import fitz  # PyMuPDF
 import openai
 import pandas as pd
 import scipy.stats as stats
 from bs4 import BeautifulSoup
-from dotenv import load_dotenv
+
+# Local imports
+from config import (
+    API_KEY,
+    MAX_WORDS,
+    OVERLAP_WORDS,
+    SIGNIFICANCE_LEVEL,
+    STATCHECK_PROMPT,
+    apply_pandas_display_options,
+)
 from openai import OpenAI
 
-# Set pandas display options for better readability
-pd.set_option("display.max_columns", None)
-pd.set_option("display.width", 10000)
-pd.set_option("display.colheader_justify", "center")
-pd.set_option("display.max_rows", None)
+# ------------------------------------------------------------------------- 
+# Pandas display options
+# -------------------------------------------------------------------------
+apply_pandas_display_options() # Applies pandas display options for better readability
 
-# Load environment variables from the .env file
-load_dotenv()
-
-
+# ------------------------------------------------------------------------- 
+# Main class, StatcheckTester
+# -------------------------------------------------------------------------
 class StatcheckTester:
-    def __init__(self):
-        # Retrieve the OpenAI API key from the .env file
-        self.api_key = os.getenv("OPENAI_API_KEY")
-        self.client = OpenAI()  # Initialize the OpenAI client
-        openai.api_key = self.api_key  # Set the OpenAI API key
+    """Extracts tests from scientific text and checks their consistency."""
 
+    # Initialization
+    def __init__(self) -> None:
+        self.api_key = API_KEY
+        openai.api_key = self.api_key
+        self.client = OpenAI()
 
     def calculate_p_value(self, test_type, df1, df2, test_value, operator, reported_p_value, epsilon, tail="two") -> tuple:
         """
@@ -209,59 +220,7 @@ class StatcheckTester:
         :param context: The scientific text containing reported statistical tests.
         :return: The extracted test data as a string.
         """
-        prompt = f"""
-        You are an AI assistant that extracts statistical test results from scientific text.
-
-        Please extract ALL statistical tests reported in the following text. For each test, extract the following components:
-
-        - test_type: one of 'r', 't', 'f', 'chi2', 'z'.
-        - df1: First degree of freedom (float or integer). If not applicable, set to None.
-        - df2: Second degree of freedom (float or integer). If not applicable, set to None.
-        - test_value: The test statistic value (float).
-        - operator: The operator used in the reported p-value ('=', '<', '>').
-        - reported_p_value: The numerical value of the reported p-value (float) if available, or 'ns' if reported as not significant.
-        - epsilon (float): Only extract when a Huynh-Feldt correction is mentioned. If not applicable, set to None.
-        - tail: 'one' or 'two'. Assume 'two' unless explicitly stated.
-
-        Guidelines:
-
-        - Do not extract any tests that does not EXPLICITY mention one of the predetermined test types (e.g., t, r, f, chi2, z).
-        - Do not extract test that are incomplete (i.e., the minimal requirements are: test_type, df1, test_value, operator, reported_p_value).
-        - If you are not completely certain that a test meets the minimal requirements (e.g., test_type is not explicity mentioned), do not extract it.
-        - You must never infer or assume test types, degrees of freedom, or test values based on contextual clues, reported means, or p-values. Only extract statistical tests that are explicitly reported in APA format and contain a clearly labeled test type (e.g., “t”, “z”, “f”, etc.).
-        - Be tolerant of minor typos or variations in reporting.
-        - Recognize tests even if they are embedded in sentences or reported in a non-standard way.
-        - **Pay special attention to distinguishing between chi-square tests (often denoted as 'χ²' or 'chi2') and F-tests. Example: "𝜒2 (df =97)=80.12, p=.893"**
-        - A chi-sqaure test can also be reported as "G-square", "G^2", or "G2". Example: G2(18) = 17.50, p =.489, is a chi2 test. The test type should still be chi2.
-        - **IMPORTANT: "rho" is not the same as "r". Do not interpret "rho" as an "r" test.**
-        - Extract the correct operator from the p-value (e.g., '=', '<', '>').
-        - For p-values reported with inequality signs (e.g., p < 0.05), extract both the operator ('<') and the numerical value (0.05). This goes for all operators.
-        - Do not perform any calculations or inferences beyond what's explicitly stated.
-        - It can occur that a test is split over multiple sentences. Example: "F"(1, 25) = 11.36, MSE = .040, ηp
-        2 =
-        .312, p = .002". Make sure to extract the test correctly, pay close attention to the operator.
-        - If ANY of the components are missing or unclear, skip that test, especially the test_value.
-        - Treat commas in numbers as thousand separators, not decimal points. Remove commas from numbers before extracting them. For example, '16,107' should be extracted as '16107' (sixteen thousand one hundred seven), not '16.107'.
-        - Regarding chi2 tests: do not extract the sample size (N).
-        - Only an F-test requires two degrees of freedom (df1, df2). For all other tests, only extract df1.
-        - It can occur that a thousand separator (,) is used in the degree(s) of freedom. Example: "r(31,724) = -0.02" has df1 = 31724.
-        - Do not extract tests that have not been described in this prompt before. Example: "B(31,801) = -.030, p <.001" should not be extracted, since the test type 'B' has not been described in the prompt.
-        - Again, never extract other tests than the ones described in this prompt!
-        - Only extract an epsilon value if it is explicitly mentioned in the context AND if a Huynh-Feldt correction was applied. Otherwise, set epsilon to None.
-
-        Format the result EXACTLY like this:
-
-        tests = [
-            {{"test_type": <test_type>, "df1": <df1>, "df2": <df2>, "test_value": <test_value>, "operator": <operator>, "reported_p_value": <reported_p_value>, "epsilon": <epsilon>, "tail": <tail>}},
-            ...
-        ]
-
-        Now, extract the tests from the following text:
-
-        {context}
-
-        After you have read the text above, read it again to ensure you understand the instructions. Then, extract the reported statistical tests as requested.
-        """
+        prompt = STATCHECK_PROMPT.format(context=context)
 
         response = self.client.chat.completions.create(
             model="gpt-4o-mini",
@@ -321,9 +280,9 @@ class StatcheckTester:
             # Split the text into words
             words = text.split()
             # Maximum words per segment
-            max_words = 500
+            max_words = MAX_WORDS # Get the max words from the config file
             # Number of words to overlap between segments
-            overlap = 8
+            overlap = OVERLAP_WORDS # Get the overlap from the config file
             # Split words into overlapping segments
             segments = []
             i = 0
@@ -365,7 +324,7 @@ class StatcheckTester:
         Determine the significance of the RECALCULATED p-value range based on the significance level.
 
         :param p_value_range: Tuple (lower, upper) of the recalculated p-value range.
-        :param significance_level: The significance level (now hardcoded at 0.05).
+        :param significance_level: The significance level (set at 0.05 in cofig file).
         :return: True if significant, False if not significant.
         """
         if p_value_range[1] < significance_level:
@@ -384,7 +343,7 @@ class StatcheckTester:
         :param file_context: A list of context segments.
         :return: A pandas DataFrame containing the statcheck results (or None if no results).
         """
-        significance_level = 0.05  # Hardcode the significance level at 0.05
+        significance_level = SIGNIFICANCE_LEVEL  # Get the significance level from the config file
         all_tests = []
 
         # Use enumerate to get the index of the segment
@@ -563,49 +522,3 @@ class StatcheckTester:
                 return df_statcheck_results
             else:
                 return None
-
-
-# Usage:
-if __name__ == "__main__":
-    # Record the start time
-    start_time = time.time()
-
-    tester = StatcheckTester()
-
-    # Prompt the user to provide the file path
-    file_path = input("Please provide the file path to the context you want to analyse:\n")
-
-    # Read the context segments from the provided file path
-    file_context = tester.read_context_from_file(file_path)
-
-    # If context segments were successfully read, extract the data and perform the statcheck test
-    if file_context:
-        #  Perform the statcheck test once
-        results_list = []
-        for i in range(1):
-            print(f"Run {i+1} of 1")
-            result_df = tester.perform_statcheck_test(file_context)
-            if result_df is not None:
-                results_list.append(result_df)
-            else:
-                print("No results in this run.")
-
-        # Compare the results and find the most frequent one
-        # Convert each DataFrame to a string representation
-        results_str_list = [df.to_csv(index=False) for df in results_list]
-        # Count the frequencies
-        counts = Counter(results_str_list)
-        # Find the most common result
-        if counts:
-            most_common_result_str, frequency = counts.most_common(1)[0]
-            # Convert the string back to a DataFrame
-            most_common_df = pd.read_csv(StringIO(most_common_result_str))
-            # Display the most frequent result
-            print("\nMost frequent result:")
-            print(most_common_df)
-        else:
-            print("Inconsistent results, please run the test again.")
-
-    # Calculate and print the total running time
-    total_time = time.time() - start_time
-    print(f"\nTotal running time: {total_time:.2f} seconds")
