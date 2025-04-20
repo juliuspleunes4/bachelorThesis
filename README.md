@@ -42,7 +42,7 @@ You can run the GRIM Test and Statcheck scripts by executing their corresponding
    
    Execute `python testers\GRIM\GRIM_gpt4o.py`
     
- - To run **Statcheck**:
+ - To run **statcheck**:
 
    Execute `python testers\statcheck\statcheck_gpt4o_mini.py`
    
