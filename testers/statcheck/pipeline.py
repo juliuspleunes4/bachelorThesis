@@ -38,13 +38,15 @@ apply_pandas_display_options() # Applies pandas display options for better reada
 # Main class, StatcheckTester
 # -------------------------------------------------------------------------
 class StatcheckTester:
-    """Extracts tests from scientific text and checks their consistency."""
+    """
+    Extracts NHST tests from scientific text using AI and checks their consistency using Python.
+    """
 
     # Initialization
     def __init__(self) -> None:
-        self.api_key = API_KEY
+        self.api_key = API_KEY # Get the API key from the config file
         openai.api_key = self.api_key
-        self.client = OpenAI()
+        self.client = OpenAI() # Initialize the OpenAI client
 
     def calculate_p_value(self, test_type, df1, df2, test_value, operator, reported_p_value, epsilon, tail="two") -> tuple:
         """
