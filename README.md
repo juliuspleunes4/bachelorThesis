@@ -167,7 +167,8 @@ Since the reported _p_-value of `0.059` falls between the recalculated range `0.
 
 ## Statcheck-Related Issues
 - **Typesetting issues:** In some journals, mathematical symbols such as `<` are replaced by an image of this symbol, which can’t be converted to plain text. This means that the correct operator cannot be extracted, meaning the script has to fill in an operator itself. Usually, the script fills in the `=` operator, which is likely to be incorrect.
-- **Statistical corrections:** The script does not take statistical corrections (described in the context) into account. The script only tries to identify which tail to use (`'one'` or `'two'`) based on the context. A feature which tries to correct for statistical corrections could be implemented at a later stage, but is currently not in place. 
+- **Contextual understanding:** Currently, the script only accounts for Huynh-Feldt corrections; other statistical corrections have not yet been implemented. Furthermore, the script attempts to identifiy the test tail (`'one'` or `'two'`) which was used, based on the context. In future versions, the script can be programmed to allow for the detection of additional statistical corrections.
+
 
 # Code Quality
 All code is compliant with the [Ruff linter](https://docs.astral.sh/ruff/).
