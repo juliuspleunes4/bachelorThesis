@@ -14,7 +14,6 @@ def main() -> None:
 
     tester = StatcheckTester()
     file_path = input("Please provide the file path to the context you want to analyse:\n")
-
     file_context = tester.read_context_from_file(file_path)
     start_time = time.time() # Start time after the file is read
     if not file_context:
@@ -41,6 +40,7 @@ def main() -> None:
 
     total_time = time.time() - start_time
     print(f"\nTotal running time: {total_time:.2f} seconds")
+
 
 if __name__ == "__main__":
     main()

@@ -1,5 +1,5 @@
 """
-Configuration file for the StatcheckTester.
+Configuration file for the StatcheckTester pipeline.
 This file contains all the hyper-parameters and prompts used in the pipeline.
 """
 
@@ -8,25 +8,18 @@ import os
 import pandas as pd
 from dotenv import load_dotenv
 
-# Load environment variables from a .env
-load_dotenv()
-
-# ------------------------------------------------------------------------- 
-# API-keys
 # -------------------------------------------------------------------------
-
-# OpenAI API key, None is not set
+# Environment
+# -------------------------------------------------------------------------
+load_dotenv()
 API_KEY: str | None = os.getenv("OPENAI_API_KEY")
 
 
 # ------------------------------------------------------------------------- 
 # Pipeline hyper‑parameters
 # -------------------------------------------------------------------------
-
-# Maximum number of words per text segment sent to the AI model
-MAX_WORDS: int = 500
-# Number of overlap words between segments
-OVERLAP_WORDS: int = 8
+MAX_WORDS: int = 500 # Maximum number of words per text segment sent to the AI model
+OVERLAP_WORDS: int = 8 # Number of overlap words between segments
 
 # Default alpha value for NHST tests
 SIGNIFICANCE_LEVEL: float = 0.05
@@ -35,8 +28,6 @@ SIGNIFICANCE_LEVEL: float = 0.05
 # ------------------------------------------------------------------------- 
 # Prompts
 # -------------------------------------------------------------------------
-
-# Statcheck prompt
 STATCHECK_PROMPT: str = ("""
         You are an AI assistant that extracts statistical test results from scientific text.
 
@@ -55,6 +46,7 @@ STATCHECK_PROMPT: str = ("""
 
         - Do not extract any tests that does not EXPLICITY mention one of the predetermined test types (e.g., t, r, f, chi2, z).
         - Do not extract test that are incomplete (i.e., the minimal requirements are: test_type, df1, test_value, operator, reported_p_value).
+        - IMPORTANT: EXTRACT THE CORRECT OPERATOR FROM THE P-VALUE (E.G., '=', '<', '>').
         - If you are not completely certain that a test meets the minimal requirements (e.g., test_type is not explicity mentioned), do not extract it.
         - You must never infer or assume test types, degrees of freedom, or test values based on contextual clues, reported means, or p-values. Only extract statistical tests that are explicitly reported in APA format and contain a clearly labeled test type (e.g., “t”, “z”, “f”, etc.).
         - Be tolerant of minor typos or variations in reporting.
@@ -62,7 +54,6 @@ STATCHECK_PROMPT: str = ("""
         - **Pay special attention to distinguishing between chi-square tests (often denoted as 'χ²' or 'chi2') and F-tests. Example: "𝜒2 (df =97)=80.12, p=.893"**
         - A chi-sqaure test can also be reported as "G-square", "G^2", or "G2". Example: G2(18) = 17.50, p =.489, is a chi2 test. The test type should still be chi2.
         - **IMPORTANT: "rho" is not the same as "r". Do not interpret "rho" as an "r" test.**
-        - Extract the correct operator from the p-value (e.g., '=', '<', '>').
         - For p-values reported with inequality signs (e.g., p < 0.05), extract both the operator ('<') and the numerical value (0.05). This goes for all operators.
         - Do not perform any calculations or inferences beyond what's explicitly stated.
         - It can occur that a test is split over multiple sentences. Example: "F"(1, 25) = 11.36, MSE = .040, ηp
@@ -76,6 +67,7 @@ STATCHECK_PROMPT: str = ("""
         - Do not extract tests that have not been described in this prompt before. Example: "B(31,801) = -.030, p <.001" should not be extracted, since the test type 'B' has not been described in the prompt.
         - Again, never extract other tests than the ones described in this prompt!
         - Only extract an epsilon value if it is explicitly mentioned in the context AND if a Huynh-Feldt correction was applied. Otherwise, set epsilon to None.
+        - IMPORTANT: EPSILON IS REPORTED AS (ε) OR (Epsilon). EPSILON IS NOT THE SAME AS ETA SQUARED (η2) OR ETA (η).
 
         Format the result EXACTLY like this:
 
@@ -104,3 +96,4 @@ def apply_pandas_display_options() -> None:
     pd.set_option("display.width", 10_000)
     pd.set_option("display.colheader_justify", "center")
     pd.set_option("display.max_rows", None)
+    pd.set_option("display.max_colwidth", None)
