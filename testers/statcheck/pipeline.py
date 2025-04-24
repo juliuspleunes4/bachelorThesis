@@ -151,7 +151,6 @@ class StatcheckTester:
             (p_value_lower, p_value_upper), operator, reported_p_value
         )
 
-
         return consistent, (p_value_lower, p_value_upper)
 
     @staticmethod
