@@ -47,7 +47,7 @@ class StatcheckTester:
         self.client = OpenAI(api_key=self.api_key)  # Initialize the OpenAI client
 
     # ------------------------------------------------------------------
-    # Utility methods
+    # Statcheck core calculations
     # ------------------------------------------------------------------
     @staticmethod
     def calculate_p_value(test_type, df1, df2, test_value, operator, reported_p_value, epsilon, tail="two") -> tuple:
@@ -205,6 +205,41 @@ class StatcheckTester:
             else:
                 return False
 
+    @staticmethod
+    def determine_reported_significance(operator, reported_p_value, significance_level) -> bool:
+        """
+        Determine the significance of the REPORTED p-value based on the provided operator and significance level.
+
+        :param operator: The operator used in the reported p-value ('=', '<', '>').
+        :param reported_p_value: The numerical value of the reported p-value.
+        :return: True if significant, False if not significant.
+        """
+        if operator in ("=", "<"):
+            return reported_p_value <= significance_level
+        elif operator == ">":
+            return reported_p_value < significance_level
+        return False  # Invalid operator
+
+    @staticmethod
+    def determine_recalculated_significance(p_value_range, significance_level) -> bool:
+        """
+        Determine the significance of the RECALCULATED p-value range based on the significance level.
+
+        :param p_value_range: Tuple (lower, upper) of the recalculated p-value range.
+        :param significance_level: The significance level (set at 0.05 in cofig file).
+        :return: True if significant, False if not significant.
+        """
+        lower, upper = p_value_range
+
+        if upper < significance_level:
+            return True
+        if lower > significance_level:
+            return False
+        return None
+
+    # ------------------------------------------------------------------
+    # OpenAI interaction
+    # ------------------------------------------------------------------
     def extract_data_from_text(self, context) -> str:
         """
         Send context to the gpt-4o-mini model to extract reported statistical tests.
@@ -243,6 +278,9 @@ class StatcheckTester:
 
         return None
 
+    # ------------------------------------------------------------------
+    # File reading
+    # ------------------------------------------------------------------
     @staticmethod
     def read_context_from_file(file_path) -> list:
         """
@@ -290,39 +328,9 @@ class StatcheckTester:
             print("File not found. Please provide a valid path.")
             return []
 
-    @staticmethod
-    def determine_reported_significance(operator, reported_p_value, significance_level) -> bool:
-        """
-        Determine the significance of the REPORTED p-value based on the provided operator and significance level.
-
-        :param operator: The operator used in the reported p-value ('=', '<', '>').
-        :param reported_p_value: The numerical value of the reported p-value.
-        :return: True if significant, False if not significant.
-        """
-        if operator in ("=", "<"):
-            return reported_p_value <= significance_level
-        elif operator == ">":
-            return reported_p_value < significance_level
-        return False  # Invalid operator
-
-    @staticmethod
-    def determine_recalculated_significance(p_value_range, significance_level) -> bool:
-        """
-        Determine the significance of the RECALCULATED p-value range based on the significance level.
-
-        :param p_value_range: Tuple (lower, upper) of the recalculated p-value range.
-        :param significance_level: The significance level (set at 0.05 in cofig file).
-        :return: True if significant, False if not significant.
-        """
-        lower, upper = p_value_range
-
-        if upper < significance_level:
-            return True
-        if lower > significance_level:
-            return False
-        return None
-
-
+    # ------------------------------------------------------------------
+    # StatcheckTester pipeline entry point
+    # ------------------------------------------------------------------
     def perform_statcheck_test(self, file_context) -> pd.DataFrame | None:
         """
         Extract test data from context segment(s) and perform statcheck.
