@@ -377,6 +377,23 @@ class StatcheckTester:
                 consistent_str = "N/A"
                 valid_p_value_range_str = "N/A"
 
+            # ---------------------- Validate DF requirements ----------------------
+            if test_type == "r" and df1 is None:
+                notes_list = ["Correlation test requires degrees of freedom (df1). None provided."]
+                apa_reporting = f"{test_type} = {test_value:.2f}"
+                consistent_str = "Cannot determine"
+                valid_p_value_range_str = "N/A"
+                statcheck_results.append(
+                    {
+                        "Consistent": consistent_str,
+                        "APA Reporting": apa_reporting,
+                        "Reported P-value": f"{operator} {reported_p_value}" if reported_p_value != "ns" else "ns",
+                        "Valid P-value Range": valid_p_value_range_str,
+                        "Notes": " ".join(notes_list),
+                    }
+                )
+                continue  # Skip this test
+
             else:
                 # ------------------ Calculate p-value range ------------------
                 consistent, p_value_range = self.calculate_p_value(
