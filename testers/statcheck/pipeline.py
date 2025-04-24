@@ -4,7 +4,7 @@ Use AI to automatically extract reported statistical tests from a given context 
 
 Credits
 -------
-Functionality is heavlity inspired by the original statcheck tool, created by Michèle Nuijten.
+The functionality is heavily inspired by the original statcheck tool, created by Michèle Nuijten.
 (https://github.com/MicheleNuijten/statcheck)
 (https://michelenuijten.shinyapps.io/statcheck-web/)
 """
