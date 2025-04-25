@@ -58,7 +58,7 @@ The GRIM Test (Granularity-Related Inconsistency of Means) is a tool for detecti
 
 ## How It Works
 
-The AI-powered GRIM script uses the `GPT-4o` AI model to extract relevant data and uses Python-based calculations. The process involves the following steps:
+The process involves the following steps:
 
 1. **Central class:**  The `GRIMTester` class contains all methods for reading context from files, extracting reported means and sample sizes, validating whether GRIM is applicable, performing the GRIM test, and presenting results.
 
@@ -109,6 +109,9 @@ For a reported t-test with `t(30) = 1.96` and `p = 0.059`, the script calulates 
 Since the reported _p_-value of `0.059` falls between the recalculated range `0.05873 to 0.05996`, the test is consistent.
 
 ## How It Works
+
+The process involves the following steps:
+
 1. **Central class**: The `StatcheckTester` class contains all methods for reading context from files, extracting reported  statistical tests, recalculating a valid _p_-value range, comparison and presenting results.
 2. **Convert**: The `.pdf`, `.htm` or `.html` file gets converted into plain text. `.txt` files are already in plain text.
 
