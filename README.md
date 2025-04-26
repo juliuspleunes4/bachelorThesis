@@ -106,7 +106,7 @@ For a reported t-test with `t(30) = 1.96` and `p = 0.059`, the script calulates 
 - Lower bound: `t = 1.964999...` gives a _p_-value of `0.05873`.
 - Upper bound: `t = 1.955` gives a _p_-value of `0.05996`.
 
-Since the reported _p_-value of `0.059` falls between the recalculated range `0.05873 to 0.05996`, the test is consistent.
+Since the reported _p_-value of `0.059` falls between the recalculated range of `0.05873 to 0.05996`, the test is consistent.
 
 ## How It Works
 
