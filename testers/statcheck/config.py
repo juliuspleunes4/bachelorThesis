@@ -87,7 +87,6 @@ STATCHECK_PROMPT: str = ("""
 # -------------------------------------------------------------------------
 # Pandas display options
 # -------------------------------------------------------------------------
-
 def apply_pandas_display_options() -> None:
     """
     Standard console-friendly Pandas formatting.
