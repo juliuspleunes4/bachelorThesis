@@ -177,21 +177,13 @@ class StatcheckTester:
         p_value_lower, p_value_upper = recalculated_p_value_range
 
         if operator == "<":
-            # Return True if lower bound is less than reported value
-            if p_value_lower < reported_value:
-                return True
+            return p_value_lower < reported_value
 
-        elif operator == ">":
-            # Return True if upper bound is greater than reported value
-            if p_value_upper > reported_value:
-                return True
+        if operator == ">":
+            return p_value_upper > reported_value
 
-        elif operator == "=":
-            # Determine the rounding boundaries for the reported p-value
-            if "." in str(reported_value):
-                decimal_places = StatcheckTester.get_decimal_places(str(reported_value))
-            else:
-                decimal_places = 0
+        if operator == "=":
+            decimal_places = StatcheckTester.get_decimal_places(str(reported_value)) if "." in str(reported_value) else 0
 
             rounding_increment = 0.5 * 10 ** (-decimal_places)
             reported_p_lower = reported_value - rounding_increment
