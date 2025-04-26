@@ -115,7 +115,7 @@ The process involves the following steps:
 1. **Central class**: The `StatcheckTester` class contains all methods for reading context from files, extracting reported  statistical tests, recalculating a valid _p_-value range, comparison and presenting results.
 2. **Convert**: The `.pdf`, `.htm` or `.html` file gets converted into plain text. `.txt` files are already in plain text.
 
-3. **Segmentation and overlap**: The plain text is then split into segments of 500 words each, with an overlap of 8 words between consecutive segments. Using segmentation, the script does a much better job at correctly identifying all statistical tests in the entire context. The overlap ensures that each statistical test is detected, even if the test spans multiple segments (`test X` starts at the end of segment `n`, it ends at the begin of segment `n + 1`).
+3. **Segmentation and overlap**: The plain text is then split into segments of 500 words each, with an overlap of 8 words between consecutive segments. Using segmentation, the script does a much better job at correctly identifying all statistical tests in the entire context. The overlap ensures that each statistical test is detected, even if the test spans multiple segments (`test X` starts at the end of segment `n`, it ends at the beginning of segment `n + 1`).
 
    
 4. **Extract data**: The `extract_data_from_text` method uses the `GPT-4o-mini` AI model to identify and extract reported statistical tests from the text. This method transforms unstructured data (tests found in the text) into structured data: a Python list of dictionaries. Each extracted test is represented as a dictionary with the following keys:
