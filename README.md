@@ -157,7 +157,7 @@ The process involves the following steps:
 
 - **Decimal separator**: Both the GRIM test and Statcheck only recognize a dot `.` as a valid decimal separator. A comma `,` is regarded as thousand separator. For example, `'10,159'` is interpreted as 'ten thousand one hundred fifty-nine', not 'ten point one five nine'.
 
-- **Error handling**: The script includes basic error handling for file formats and extraction issues. Make sure to check the console for any error messages if something goes wrong. Some hints are also programmed in the scripts: e.g., when providing an `"r"` test with no `DF`, the script returns the following `Note`: " Correlation test requires degrees of freedom (df1). None provided."
+- **Error handling**: The script includes basic error handling for file formats and extraction issues. Make sure to check the console for any error messages if something goes wrong. Some hints are also programmed in the scripts: e.g., when providing an `"r"` test with no `DF`, the script returns the following `Note`: _"Correlation test requires degrees of freedom (df1). None provided."_
 
 
 # Known Issues
