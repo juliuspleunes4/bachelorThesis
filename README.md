@@ -145,7 +145,7 @@ The process involves the following steps:
    - `Consistent`: Indicates whether the reported _p_-value falls within the valid recalculated range (`Yes` for consistent, `No` for inconsistent).
    - `APA Reporting`: Displays the correct APA reporting of the detected test, regardless of how the test is reported in the context.
    - `Reported p-Value`: The _p_-value as originally reported in the text.
-   - `Valid p-Value Range`: The range of valid _p_-values (lower, upper) based on the test type, test value and degrees of freedom.
+   - `Valid p-Value Range`: The range of valid _p_-values (lower, upper) based on the test type, test statistic and degrees of freedom.
    - `Notes`: Any additional information regarding the result, such as the presence of gross or regular inconsistencies or the usage of a statistical correction.
 
 
