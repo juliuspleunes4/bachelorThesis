@@ -14,7 +14,6 @@ from dotenv import load_dotenv
 load_dotenv()
 API_KEY: str | None = os.getenv("OPENAI_API_KEY")
 
-
 # ------------------------------------------------------------------------- 
 # Pipeline hyper‑parameters
 # -------------------------------------------------------------------------
@@ -23,7 +22,6 @@ OVERLAP_WORDS: int = 8 # Number of overlap words between segments
 
 # Default alpha value for NHST tests
 SIGNIFICANCE_LEVEL: float = 0.05
-
 
 # ------------------------------------------------------------------------- 
 # Prompts
@@ -82,7 +80,6 @@ STATCHECK_PROMPT: str = ("""
 
         After you have read the text above, read it again to ensure you understand the instructions. Then, extract the reported statistical tests as requested.
         """)
-
 
 # -------------------------------------------------------------------------
 # Pandas display options

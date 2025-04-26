@@ -14,13 +14,11 @@ from dotenv import load_dotenv
 load_dotenv()
 API_KEY: str | None = os.getenv("OPENAI_API_KEY")
 
-
 # -------------------------------------------------------------------------
 # Pipeline hyper-parameters
 # -------------------------------------------------------------------------
 MAX_WORDS: int = 1000 # Maximum number of words per text segment sent to the AI model
 OVERLAP_WORDS: int = 200 # Number of words to overlap between segments
-
 
 # -------------------------------------------------------------------------
 # Prompts
