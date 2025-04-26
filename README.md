@@ -67,28 +67,28 @@ The process involves the following steps:
 3. **Segmentation and overlap:**  The plain text is split into segments of 1,000 words each, with an overlap of 200 words between consecutive segments. This larger context window increases the chances that all relevant parameters are captured together in the same context window.
 
 4. **Extract data:**  The `extract_data_from_text` method uses the `GPT-4o` AI model to identify and extract reported means and sample sizes from each segment. The model is instructed to extract values only if:
-   - The value is explicitly labeled as a `mean`
-   - The mean is based on discrete integer data (e.g., Likert scales)
-   - A sample size (`N`) is explicitly mentioned and clearly linked to the mean
-   - The context confirms the mean is valid for a GRIM test
+   - The value is explicitly labeled as a `mean`.
+   - The mean is based on discrete integer data (e.g., Likert scales).
+   - A sample size (`N`) is explicitly mentioned and clearly linked to the mean.
+   - The context confirms the mean is valid for a GRIM test.
 
    Besides extracting relevant data, the model is also instructed to return a `reasoning string`, in which the model must provide a brief justification for why the identified mean value is considered GRIM-applicable.
 
    This method transforms unstructured data (tests found in the text) into structured data: a Python list of dictionaries. Each extracted test is represented as a dictionary with the following keys:
-   - `reported_mean`: The mean value as reported in the article (float)
-   - `sample_size`: The sample size associated with the reported mean (integer)
-   - `discrete_reasoning`: A brief explanation of why the mean value is considered GRIM-applicable (string). For example: `"mean of 7-point Likert responses clearly linked to N = 28 in same sentence"`
+   - `reported_mean`: The mean value as reported in the article (float).
+   - `sample_size`: The sample size associated with the reported mean (integer).
+   - `discrete_reasoning`: A brief explanation of why the mean value is considered GRIM-applicable (string). For example: `"mean of 7-point Likert responses clearly linked to N = 28 in same sentence"`.
 
 5. **GRIM applicability check:**  This check removes entries from the final output that are not theoretically testable using the GRIM formula. More specifically, the sample size must not exceed `10^d`, where `d` is the number of decimal places in the reported mean. This is because *any* mean value where the sample size exceeds this threshold can be constructed from integer data, always resulting in a valid mean value. To reduce clutter in the final output, these entries are excluded from the final results.
 
 6. **GRIM test:**  The `grim_test` method calculates if the reported mean is mathematically possible given the sample size and number of decimal places.
 
 7. **Processing results:**  After extraction and testing, the results are added into a `DataFrame` and printed. Each test is displayed in a separate row with the following column headers:
-   - `Consistent`: Indicates whether the reported mean passed the GRIM test (`Yes` or `No`)
-   - `Reported Mean`: The original mean value as extracted from the text, including trailing zeros
-   - `Sample Size`: The corresponding sample size
-   - `Decimals`: The number of decimal places in the reported mean
-   - `Reasoning`: The AI-generated explanation for why the reported mean was considered GRIM-applicable
+   - `Consistent`: Indicates whether the reported mean passed the GRIM test (`Yes` or `No`).
+   - `Reported Mean`: The original mean value as extracted from the text, including trailing zeros.
+   - `Sample Size`: The corresponding sample size.
+   - `Decimals`: The number of decimal places in the reported mean.
+   - `Reasoning`: The AI-generated explanation for why the reported mean was considered GRIM-applicable.
 
 
 
