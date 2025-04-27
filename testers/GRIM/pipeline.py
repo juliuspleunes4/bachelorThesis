@@ -183,6 +183,7 @@ class GRIMTester:
         """
         Extract test data from context segment(s) and perform the GRIM test.
         Only display results where GRIM is applicable based on decimal resolution.
+
         :param file_context: A list of context segments.
         :return: None, prints the results of the GRIM test.
         """
