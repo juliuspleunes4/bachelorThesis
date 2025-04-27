@@ -50,26 +50,33 @@ class StatcheckTester:
     # Statcheck core calculations
     # ------------------------------------------------------------------
     @staticmethod
-    def calculate_p_value(test_type, df1, df2, test_value, operator, reported_p_value, epsilon, tail="two") -> tuple:
+    def calculate_p_value(
+        test_type: str,
+        df1: float | None,
+        df2: float | None,
+        test_value: float | None,
+        operator: str,
+        reported_p_value: str | None,
+        epsilon: float | None,
+        tail: str = "two"
+    ) -> tuple[bool, tuple[float | None, float | None]]:
         """
         Calculate the valid p-value range for different statistical tests.
 
-        :param test_type: The type of statistical test ('r', 't', 'f', 'chi2', 'z').
-        :param df1: The first degree of freedom.
-        :param df2: The second degree of freedom (use None for tests that only need one df).
+        :param test_type: The type of statistical test ('r', 't', 'f', 'chi2', or 'z').
+        :param df1: The first degree of freedom (set to None if not applicable (only z-tests)).
+        :param df2: The second degree of freedom (set to None if not applicable).
         :param test_value: The test statistic value.
-        :param operator: The operator used in the reported p-value ('=', '<', '>').
-        :param reported_p_value: The numerical value of the reported p-value.
-        :param epsilon: The epsilon value for Huynh-Feldt correction (use None if not applicable).
-        :param tail: Specify 'one' for one-tailed test or 'two' for two-tailed test (default is 'two').
-        :return: Tuple containing:
-            - Consistency (True if reported p-value falls within recalculated p-value range, False otherwise).
-            - Recalculated valid p-value range (lower, upper).
+        :param operator: The operator used in the reported p-value ('=', '<', or '>').
+        :param reported_p_value: The reported p-value as a string (e.g., '0.05' or 'ns').
+        :param epsilon: The epsilon value for Huynh-Feldt correction (set to None if not applicable).
+        :param tail: Specify 'one' for a one-tailed test or 'two' for a two-tailed test (default is 'two').
+        :return: A tuple containing:
+            - A boolean indicating whether the reported p-value is consistent with the recalculated range.
+            - A tuple with the recalculated valid p-value range (lower bound, upper bound).
         """
-        # Check if any critical parameter is None
-        if (test_value is None
-            or (test_type in ["t", "r", "chi2"] and df1 is None)
-            or (test_type == "f" and (df1 is None or df2 is None))):
+        # Check if required degrees of freedom are missing
+        if (test_type in ["t", "r", "chi2"] and df1 is None) or (test_type == "f" and (df1 is None or df2 is None)):
             return False, (None, None)
 
         # Calculate the rounding boundaries for the test statistic
@@ -154,7 +161,7 @@ class StatcheckTester:
         return consistent, (p_value_lower, p_value_upper)
 
     @staticmethod
-    def get_decimal_places(value_str) -> int:
+    def get_decimal_places(value_str: str) -> int:
         """
         Function to calculate the number of decimal places in a value, including trailing zeros.
 
@@ -164,7 +171,11 @@ class StatcheckTester:
         return len(value_str.split(".")[1]) if "." in value_str else 0
 
     @staticmethod
-    def compare_p_values(recalculated_p_value_range, operator, reported_value) -> bool:
+    def compare_p_values(
+        recalculated_p_value_range: tuple[float | None, float | None],
+        operator: str,
+        reported_value: float
+    ) -> bool:
         """
         Compare recalculated valid p-value range with reported p-value.
 
@@ -197,7 +208,11 @@ class StatcheckTester:
                 return False
 
     @staticmethod
-    def determine_reported_significance(operator, reported_p_value, significance_level) -> bool:
+    def determine_reported_significance(
+        operator: str,
+        reported_p_value: str,
+        significance_level: float
+    ) -> bool | None:
         """
         Determine the significance of the REPORTED p-value based on the provided operator and significance level.
 
@@ -205,14 +220,25 @@ class StatcheckTester:
         :param reported_p_value: The numerical value of the reported p-value.
         :return: True if significant, False if not significant.
         """
+        if reported_p_value == "ns":
+            return None  # Cannot determine significance for 'ns'
+
+        try:
+            reported_p_value = float(reported_p_value)
+        except ValueError:
+            return None  # If it cannot be converted, treat as indeterminate
+
         if operator in ("=", "<"):
             return reported_p_value <= significance_level
         elif operator == ">":
             return reported_p_value < significance_level
-        return False  # Invalid operator
+        return None  # Invalid operator
 
     @staticmethod
-    def determine_recalculated_significance(p_value_range, significance_level) -> bool:
+    def determine_recalculated_significance(
+        p_value_range: tuple[float | None, float | None],
+        significance_level: float
+    ) -> bool | None:
         """
         Determine the significance of the RECALCULATED p-value range based on the significance level.
 
@@ -231,7 +257,8 @@ class StatcheckTester:
     # ------------------------------------------------------------------
     # OpenAI interaction
     # ------------------------------------------------------------------
-    def extract_data_from_text(self, context) -> str:
+    def extract_data_from_text(self, context: str) -> str | None:
+
         """
         Send context to the gpt-4o-mini model to extract reported statistical tests.
         The model will return the extracted statistical tests as a list of dictionaries (still in string format).
@@ -273,7 +300,7 @@ class StatcheckTester:
     # File reading
     # ------------------------------------------------------------------
     @staticmethod
-    def read_context_from_file(file_path) -> list:
+    def read_context_from_file(file_path: str) -> list[str]:
         """
         Reads the context from a .txt, .pdf, .html, or .htm file and splits it into segments.
 
@@ -322,7 +349,7 @@ class StatcheckTester:
     # ------------------------------------------------------------------
     # StatcheckTester pipeline entry point
     # ------------------------------------------------------------------
-    def perform_statcheck_test(self, file_context) -> pd.DataFrame | None:
+    def perform_statcheck_test(self, file_context: list[str]) -> pd.DataFrame | None:
         """
         Extract test data from context segment(s) and perform statcheck.
 
@@ -371,10 +398,21 @@ class StatcheckTester:
 
             # ---------------------- Handle "ns" case ----------------------
             if reported_p_value == "ns":
-                notes_list = ["Reported as ns"]
+                notes_list = ["Reported as ns."]
                 apa_reporting = f"{test_type}({df1}{', ' + str(df2) if df2 is not None else ''}) = {test_value}, ns"
-                consistent_str = "N/A"
+                consistent_str = "Cannot determine"
                 valid_p_value_range_str = "N/A"
+
+                statcheck_results.append(
+                    {
+                        "Consistent": consistent_str,
+                        "APA Reporting": apa_reporting,
+                        "Reported P-value": "ns",
+                        "Valid P-value Range": valid_p_value_range_str,
+                        "Notes": " ".join(notes_list),
+                    }
+                )
+                continue
 
             # ---------------------- Validate DF requirements ----------------------
             if test_type == "r" and df1 is None:
@@ -446,14 +484,14 @@ class StatcheckTester:
                         test_type, df1, df2, test_value, operator, reported_p_value, None, tail="one"
                     )
                     if consistent_one_tailed:
-                        notes_list.append("Consistent for one-tailed, inconsistent for two-tailed")
+                        notes_list.append("Consistent for one-tailed, inconsistent for two-tailed.")
 
             # ------------------ Format APA Reporting ------------------
             if test_type == "f" and epsilon is not None and isinstance(df1, int) and isinstance(df2, int):
                 corrected_df1 = round(epsilon * df1, 2)
                 corrected_df2 = round(epsilon * df2, 2)
                 apa_reporting = f"{test_type}({corrected_df1}, {corrected_df2}) = {test_value:.2f}"
-                notes_list.append(f"Degrees of freedom were adjusted due to a Huynh-Feldt correction. Epsilon = {epsilon}")
+                notes_list.append(f"Degrees of freedom were adjusted due to a Huynh-Feldt correction. Epsilon = {epsilon}.")
             elif df1 is not None:
                 apa_reporting = f"{test_type}({df1}{', ' + str(df2) if df2 is not None else ''}) = {test_value:.2f}"
             else:

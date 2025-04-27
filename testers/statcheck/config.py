@@ -65,7 +65,10 @@ STATCHECK_PROMPT: str = ("""
         - Do not extract tests that have not been described in this prompt before. Example: "B(31,801) = -.030, p <.001" should not be extracted, since the test type 'B' has not been described in the prompt.
         - Again, never extract other tests than the ones described in this prompt!
         - Only extract an epsilon value if it is explicitly mentioned in the context AND if a Huynh-Feldt correction was applied. Otherwise, set epsilon to None.
+
         - IMPORTANT: EPSILON IS REPORTED AS (ε) OR (Epsilon). EPSILON IS NOT THE SAME AS ETA SQUARED (η2) OR ETA (η).
+            - EXAMPLE:  F(1, 82) = 4.03, p <.05, η =.22, is NOT a Huynh-Feldt correction. DO NOT EXTRACT EPSILON, BECAUSE THIS IS NOT AN EPSILON VALUE, BUT AN ETA VALUE.
+            - YOU NEVER EXTRACT ETA VALUES (η2) OR ETA (η) AS EPSILON. ONLY EXTRACT EPSILON VALUES (ε) OR (Epsilon) AS EPSILON!
 
         Format the result EXACTLY like this:
 
