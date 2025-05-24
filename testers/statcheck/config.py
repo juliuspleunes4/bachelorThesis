@@ -70,6 +70,45 @@ STATCHECK_PROMPT: str = ("""
             - EXAMPLE:  F(1, 82) = 4.03, p <.05, η =.22, is NOT a Huynh-Feldt correction. DO NOT EXTRACT EPSILON, BECAUSE THIS IS NOT AN EPSILON VALUE, BUT AN ETA VALUE.
             - YOU NEVER EXTRACT ETA VALUES (η2) OR ETA (η) AS EPSILON. ONLY EXTRACT EPSILON VALUES (ε) OR (Epsilon) AS EPSILON!
 
+        - You can also encounter NHST tests reported in a table. In these cases, the reported_p_value is often displayed using a symbol (e.g., * for p < 0.05, ** for p < 0.01, *** for p < 0.001).
+        - In these cases, extract p < 0.05 for *, p < 0.01 for **, and p < 0.001 for ***.
+            - EXAMPLE: 5.27 (2, 67)** in the column "F" should be extracted as:
+            - test_type: "f"
+            - df1: 2
+            - df2: 67
+            - test_value: 5.27
+            - operator: "<"
+            - reported_p_value: "0.01"
+        - BUT, ONLY EXTRACT TESTS THAT HAVE A STAR SYMBOL. DO NOT EXTRACT INCOMPLETE TESTS WITHOUT A STAR SYMBOL, EVEN IF THEY ARE NHST TESTS. THIS IS BECAUSE THERE IS NO WAY TO DETERMINE THE REPORTED P-VALUE WITHOUT A STAR SYMBOL OR WITHOUT THE P-VALUE EXPLICITLY MENTIONED.
+            - EXAPMLE: "F(1, 3184) = 2.20" - YOU DO NOT EXTRACT THIS TEST, BECAUSE IT IS INCOMPLETE. IT DOES NOT HAVE A STAR SYMBOL, AND THE OPERATOR IS NOT EXPLICITLY MENTIONED.
+            You extract this test as:
+            - test_type: "f"
+            - df1: 1
+            - df2: 3184
+            - test_value: 2.20
+            - operator: ""
+            - reported_p_value: "ns"
+
+        - It is also possible that you enocounter a text that has typesetting issues: characters such as "<", ">", "=", or "p" might not be properly extracted. If you encounter a NHST where everything is present except the operator, assume the operator is "<".
+           - EXAMPLE: " F(1, 11) 83.93, p .001" - extract this as:
+            - test_type: "f"
+            - df1: 1
+            - df2: 11
+            - test_value: 83.93
+            - operator: "<"
+            - reported_p_value: "0.001"
+
+           - EXAMPLE: "F(1, 15)
+            6.1, p
+            .05."
+            Extract this as:
+            - test_type: "f"
+            - df1: 1
+            - df2: 15
+            - test_value: 6.1
+            - operator: "<"
+            - reported_p_value: "0.05"
+
         Format the result EXACTLY like this:
 
         tests = [
