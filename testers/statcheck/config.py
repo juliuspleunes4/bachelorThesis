@@ -82,15 +82,10 @@ STATCHECK_PROMPT: str = ("""
         - BUT, ONLY EXTRACT TESTS THAT HAVE A STAR SYMBOL. DO NOT EXTRACT INCOMPLETE TESTS WITHOUT A STAR SYMBOL, EVEN IF THEY ARE NHST TESTS. THIS IS BECAUSE THERE IS NO WAY TO DETERMINE THE REPORTED P-VALUE WITHOUT A STAR SYMBOL OR WITHOUT THE P-VALUE EXPLICITLY MENTIONED.
             - EXAPMLE: "F(1, 3184) = 2.20" - YOU DO NOT EXTRACT THIS TEST, BECAUSE IT IS INCOMPLETE. IT DOES NOT HAVE A STAR SYMBOL, AND THE OPERATOR IS NOT EXPLICITLY MENTIONED.
             You extract this test as:
-            - test_type: "f"
-            - df1: 1
-            - df2: 3184
-            - test_value: 2.20
-            - operator: ""
-            - reported_p_value: "ns"
+            - DO NOT EXTRACT - CONTINUE
 
         - It is also possible that you enocounter a text that has typesetting issues: characters such as "<", ">", "=", or "p" might not be properly extracted. If you encounter a NHST where everything is present except the operator, assume the operator is "<".
-           - EXAMPLE: " F(1, 11) 83.93, p .001" - extract this as:
+           - EXAMPLE: "F(1, 11) 83.93, p .001" - extract this as:
             - test_type: "f"
             - df1: 1
             - df2: 11
