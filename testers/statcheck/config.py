@@ -84,7 +84,7 @@ STATCHECK_PROMPT: str = ("""
             You extract this test as:
             - DO NOT EXTRACT - CONTINUE
 
-        - It is also possible that you enocounter a text that has typesetting issues: characters such as "<", ">", "=", or "p" might not be properly extracted. If you encounter a NHST where everything is present except the operator, assume the operator is "<".
+        - It is also possible that you enocounter a text that has typesetting issues: characters such as  "<", ">", or "=" might not be properly extracted. If you encounter a NHST where everything is present except the operator, assume the operator is "<".
            - EXAMPLE: "F(1, 11) 83.93, p .001" - extract this as:
             - test_type: "f"
             - df1: 1
