@@ -1,5 +1,5 @@
 # bachelorThesis
-This project contains two AI-powered Python scripts which can be used for automated statistical error detection. The following tests are included: the **GRIM Test** & **Statcheck**. Both scripts leverage AI to extract data from provided files and then use Python to perfrom the necessary calculations. This is to ensure that the calculations are done correctly, since AI models are still prone to making errors when it comes to mathematics.
+This project contains two AI-powered Python scripts which can be used for automated statistical error detection. The following tests are included: the **GRIM Test** & **Statcheck**. Both scripts leverage AI to extract data from provided files and then use Python to perform the necessary calculations. This is to ensure that the calculations are done correctly, since AI models are still prone to making errors when it comes to mathematics.
 
 # Credits
 The creation of the code for the GRIM test has been inspired by the paper "_The GRIM Test: A Simple Technique Detects Numerous Anomalies in the Reporting of Results in Psychology_", `(Brown & Heathers, 2016)`. DOI: `10.1177/1948550616673876`.
@@ -67,7 +67,7 @@ The process involves the following steps:
 3. **Segmentation and overlap:**  The plain text is split into segments of 1,000 words each, with an overlap of 200 words between consecutive segments. This larger context window increases the chances that all relevant parameters are captured together in the same context window.
 
 4. **Extract data:**  The `extract_data_from_text` method uses the `GPT-4o` AI model to identify and extract reported means and sample sizes from each segment. The model is instructed to extract values only if:
-   - The value is explicitly labeled as a `mean`.
+   - The value is explicitly labelled as a `mean`.
    - The mean is based on discrete integer data (e.g., Likert scales).
    - A sample size (`N`) is explicitly mentioned and clearly linked to the mean.
 
@@ -161,7 +161,7 @@ The process involves the following steps:
 
 # Known Issues
 ## GRIM-Related Issues
-- **Incorrect GRIM applicability detection:**  The AI model frequenlty misclassifies floating-point means as GRIM-applicable, resulting in false positives. GRIM should only be applied to means derived from discrete integer data (e.g., Likert scales).
+- **Incorrect GRIM applicability detection:**  The AI model frequently misclassifies floating-point means as GRIM-applicable, resulting in false positives. GRIM should only be applied to means derived from discrete integer data (e.g., Likert scales).
 
 - **Segmentation trade-off:**   Articles are processed in segments of 1,000 words with 200-word overlap. While this prevents the context windows from becoming too large, it also increases the chance that relevant values (mean and sample size) appear in separate segments and cannot be matched.
 
