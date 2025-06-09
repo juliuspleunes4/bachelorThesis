@@ -70,7 +70,6 @@ The process involves the following steps:
    - The value is explicitly labeled as a `mean`.
    - The mean is based on discrete integer data (e.g., Likert scales).
    - A sample size (`N`) is explicitly mentioned and clearly linked to the mean.
-   - The context confirms the mean is valid for a GRIM test.
 
    Besides extracting relevant data, the model is also instructed to return a `reasoning string`, in which the model must provide a brief justification for why the identified mean value is considered GRIM-applicable.
 
