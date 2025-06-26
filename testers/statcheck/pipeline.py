@@ -1,21 +1,15 @@
-"""
-Core logic for extracting statistical tests and running AI-powered statcheck.
-Use AI to automatically extract reported statistical tests from a given context and perform the statcheck to check for inconsistencies.
-
-Credits
--------
-The functionality is heavily inspired by the original statcheck tool, created by Michèle Nuijten.
-(https://github.com/MicheleNuijten/statcheck)
-(https://michelenuijten.shinyapps.io/statcheck-web/)
-"""
-
 import ast
 import os
+import sys
+from pathlib import Path
 
-import fitz  # PyMuPDF
+import fitz  # PyMuPDF
 import pandas as pd
 import scipy.stats as stats
 from bs4 import BeautifulSoup
+
+# Add parent directory to path for imports
+sys.path.append(str(Path(__file__).parent.parent.parent))
 
 # Local imports
 from config import (
@@ -28,12 +22,47 @@ from config import (
 )
 from openai import OpenAI
 
-# ------------------------------------------------------------------------- 
+# Try to import enhanced utilities, fallback if not available
+try:
+    from utils.logging_config import get_logger, ProgressLogger
+    from utils.config import get_config
+    UTILS_AVAILABLE = True
+except ImportError:
+    # Fallback for when utils are not available
+    UTILS_AVAILABLE = False
+    import logging
+    
+    def get_logger():
+        return logging.getLogger(__name__)
+    
+    class ProgressLogger:
+        def __init__(self, total, description="Processing"):
+            self.total = total
+            self.current = 0
+            self.description = description
+        
+        def update(self, increment=1):
+            self.current += increment
+            if self.total > 0:
+                percentage = (self.current / self.total) * 100
+                print(f"{self.description}: {self.current}/{self.total} ({percentage:.1f}%)")
+        
+        def finish(self):
+            print(f"{self.description}: Completed ({self.current}/{self.total})")
+    
+    def get_config():
+        class MockConfig:
+            class statcheck:
+                api_model = "gpt-4o-mini"
+                temperature = 0.0
+        return MockConfig()
+
+# -------------------------------------------------------------------------
 # Pandas display options
 # -------------------------------------------------------------------------
 apply_pandas_display_options() # Applies pandas display options for better readability
 
-# ------------------------------------------------------------------------- 
+# -------------------------------------------------------------------------
 # Main class, StatcheckTester
 # -------------------------------------------------------------------------
 class StatcheckTester:
@@ -45,6 +74,11 @@ class StatcheckTester:
     def __init__(self) -> None:
         self.api_key = API_KEY  # Get the API key from the config file
         self.client = OpenAI(api_key=self.api_key)  # Initialize the OpenAI client
+        self.logger = get_logger()
+        if UTILS_AVAILABLE:
+            self.config = get_config().statcheck
+        else:
+            self.config = get_config().statcheck
 
     # ------------------------------------------------------------------
     # Statcheck core calculations
@@ -273,14 +307,20 @@ class StatcheckTester:
         """
         prompt = STATCHECK_PROMPT.format(context=context)
 
-        response = self.client.chat.completions.create(
-            model="gpt-4o-mini",
-            messages=[{"role": "system",
-                    "content": "You are an assistant that extracts statistical test values from scientific text.",},
-                {"role": "user", "content": prompt},
-            ],
-            temperature=0.0,
-        )
+        try:
+            self.logger.debug("Sending request to OpenAI API")
+            response = self.client.chat.completions.create(
+                model=self.config.api_model,
+                messages=[{"role": "system",
+                        "content": "You are an assistant that extracts statistical test values from scientific text.",},
+                    {"role": "user", "content": prompt},
+                ],
+                temperature=self.config.temperature,
+            )
+            self.logger.debug("Received response from OpenAI API")
+        except Exception as e:
+            self.logger.error(f"OpenAI API error: {e}")
+            return None
 
         response_content = response.choices[0].message.content.strip()
         # Remove any code blocks that might wrap the response
@@ -307,7 +347,10 @@ class StatcheckTester:
         :param file_path: The path to the file containing the context.
         :return: A list of context segments, each as a string.
         """
+        logger = get_logger()
+        
         try:
+            logger.info(f"Reading file: {file_path}")
             # Get the lowercase file extension
             extension = os.path.splitext(file_path.strip())[-1].lower()
 
@@ -319,8 +362,11 @@ class StatcheckTester:
             elif extension == ".pdf":
                 text = ""
                 with fitz.open(file_path) as doc:
-                    for page in doc:
+                    logger.debug(f"Processing PDF with {len(doc)} pages")
+                    for page_num, page in enumerate(doc, 1):
                         text += page.get_text() + "\n"
+                        if page_num % 10 == 0:
+                            logger.debug(f"Processed {page_num} pages")
 
             elif extension in (".html", ".htm"):
                 with open(file_path, "r", encoding="utf-8") as f:
@@ -328,6 +374,7 @@ class StatcheckTester:
                     text = soup.get_text(separator=" ")
 
             else:
+                logger.error(f"Unsupported file type: {extension}")
                 print("Unsupported file type. Please supply a .txt, .pdf, .html, or .htm file.")
                 return []
 
@@ -336,14 +383,21 @@ class StatcheckTester:
             segments = []
             step = MAX_WORDS - OVERLAP_WORDS # Get variables from config.py
 
+            logger.info(f"Text contains {len(words)} words, creating segments")
             for i in range(0, len(words), step):
                 segment = words[i:i + MAX_WORDS]
                 segments.append(" ".join(segment))
 
+            logger.info(f"Created {len(segments)} text segments")
             return segments
 
         except FileNotFoundError:
+            logger.error(f"File not found: {file_path}")
             print("File not found. Please provide a valid path.")
+            return []
+        except Exception as e:
+            logger.error(f"Error reading file {file_path}: {e}")
+            print(f"Error reading file: {e}")
             return []
 
     # ------------------------------------------------------------------
@@ -358,12 +412,18 @@ class StatcheckTester:
         """
         significance_level = SIGNIFICANCE_LEVEL # Get significance level from config.py
         all_tests = []
+        
+        # Initialize progress tracking
+        progress = ProgressLogger(len(file_context), "Processing segments")
 
         # ------------------------------ Extraction loop ------------------------------
         for idx, context in enumerate(file_context):
+            self.logger.debug(f"Processing segment {idx + 1}/{len(file_context)}")
             print(f"Processing segment {idx + 1}/{len(file_context)}...")
+            
             test_data = self.extract_data_from_text(context)
             if test_data is None:
+                progress.update()
                 continue
 
             try:
@@ -372,14 +432,22 @@ class StatcheckTester:
                     if all_tests and test == all_tests[-1]:
                         continue  # Skip duplicates caused by segment overlap
                     all_tests.append(test)
+                    
+                self.logger.debug(f"Extracted {len(tests)} tests from segment {idx + 1}")
             except Exception as e:
+                self.logger.warning(f"Error parsing extracted test data from segment {idx + 1}: {e}")
                 print(f"Error parsing extracted test data: {e}")
-                continue
+                
+            progress.update()
+
+        progress.finish()
 
         # ------------------------------ Run statcheck --------------------------------
         if not all_tests:
+            self.logger.info("No tests found for statcheck analysis")
             return None
 
+        self.logger.info(f"Running statcheck on {len(all_tests)} extracted tests")
         statcheck_results = []
 
         for test in all_tests:
@@ -516,6 +584,38 @@ class StatcheckTester:
             df_statcheck_results = pd.DataFrame(statcheck_results)[
                 ["Consistent", "APA Reporting", "Reported P-value", "Valid P-value Range", "Notes"]
             ]
+            self.logger.info(f"Statcheck completed. Found {len(df_statcheck_results)} test results")
             return df_statcheck_results
 
+        self.logger.info("Statcheck completed. No results found")
         return None
+
+    def export_results(self, df: pd.DataFrame, output_path: str, format_type: str = "csv") -> bool:
+        """
+        Export results to specified format.
+        
+        :param df: DataFrame containing results
+        :param output_path: Path to save the file
+        :param format_type: Format type ('csv', 'json', 'excel')
+        :return: True if successful, False otherwise
+        """
+        try:
+            output_path = Path(output_path)
+            output_path.parent.mkdir(parents=True, exist_ok=True)
+            
+            if format_type.lower() == 'csv':
+                df.to_csv(output_path, index=False)
+            elif format_type.lower() == 'json':
+                df.to_json(output_path, orient='records', indent=2)
+            elif format_type.lower() == 'excel':
+                df.to_excel(output_path, index=False)
+            else:
+                self.logger.error(f"Unsupported format: {format_type}")
+                return False
+            
+            self.logger.info(f"Results exported to: {output_path}")
+            return True
+            
+        except Exception as e:
+            self.logger.error(f"Error exporting results: {e}")
+            return False
