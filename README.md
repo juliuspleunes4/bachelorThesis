@@ -3,10 +3,12 @@
 [![Linted with Ruff](https://img.shields.io/badge/linter-ruff-orange)](https://docs.astral.sh/ruff/)
 [![OpenAI API](https://img.shields.io/badge/OpenAI-API-informational?logo=openai&logoColor=white&color=412991)](https://platform.openai.com/docs)
 
-
+---
 
 # bachelorThesis
 This project contains two AI-powered Python scripts which can be used for automated statistical error detection. The following tests are included: the **GRIM Test** & **Statcheck**. Both scripts leverage AI to extract data from provided files and then use Python to perform the necessary calculations. This is to ensure that the calculations are done correctly, since AI models are still prone to making errors when it comes to mathematics.
+
+---
 
 # Credits
 The creation of the code for the GRIM test has been inspired by the paper "_The GRIM Test: A Simple Technique Detects Numerous Anomalies in the Reporting of Results in Psychology_", `(Brown & Heathers, 2016)`. DOI: `10.1177/1948550616673876`.
@@ -14,6 +16,8 @@ The creation of the code for the GRIM test has been inspired by the paper "_The 
 The creation of the code for Statcheck has been inspired by the paper "_The prevalence of statistical reporting errors in psychology (1985-2013)_", `(Nuijten et al., 2016)`. DOI: `10.3758/s13428-015-0664-2`.
 
 The GitHub page for the R package of `statcheck` created by Michèle Nuijten can be found [here](https://github.com/MicheleNuijten/statcheck). 
+
+---
 
 # Contents
 
@@ -30,7 +34,25 @@ The GitHub page for the R package of `statcheck` created by Michèle Nuijten can
     - [Statcheck-Related Issues](#statcheck-related-issues)
 - [Code Quality](#code-quality)
 
+---
 
+# File Organization
+bachelorThesis/
+├── testers/
+│   ├── GRIM/          # GRIM test implementation
+│   │   ├── config.py  # Hyperparameters & prompts
+│   │   ├── main.py    # Entry point
+│   │   └── pipeline.py # Core logic
+│   └── statcheck/     # Statcheck implementation  
+│       ├── config.py  # Hyperparameters & prompts
+│       ├── main_single_run.py    # Single analysis
+│       ├── main_multiple_runs.py # Triple analysis for consistency
+│       └── pipeline.py # Core logic
+├── requirements.txt
+├── README.md
+└── .env (user-created)
+
+---
 
 # Getting Started
 
@@ -54,6 +76,8 @@ You can run the GRIM Test and Statcheck scripts by executing their corresponding
    Execute `$ python testers\statcheck\main_single_run.py`
    
    Execute `$ python testers\statcheck\main_multiple_runs.py` if you want to automatically analyse the provided file three times. This improves consistency but increases runtime and costs.
+
+---
 
 # GRIM Test
 
@@ -154,6 +178,7 @@ The process involves the following steps:
    - `Valid p-Value Range`: The range of valid _p_-values (lower, upper) based on the test type, test statistic and degrees of freedom.
    - `Notes`: Any additional information regarding the result, such as the presence of gross or regular inconsistencies or the usage of a statistical correction.
 
+---
 
 # Important Tips
 
@@ -165,6 +190,7 @@ The process involves the following steps:
 
 - **Error handling**: The script includes basic error handling for file formats and extraction issues. Make sure to check the console for any error messages if something goes wrong. Some hints are also programmed in the scripts: e.g., when providing an `"r"` test with no `DF`, the script returns the following `Note`: _"Correlation test requires degrees of freedom (df1). None provided."_
 
+---
 
 # Known Issues
 ## GRIM-Related Issues
@@ -178,6 +204,7 @@ The process involves the following steps:
 - **Typesetting issues:** In some journals, mathematical symbols such as `<` are replaced by an image of this symbol, which can’t be converted to plain text. This means that the correct operator cannot be extracted, meaning the script has to fill in an operator itself. Usually, the script fills in the `=` operator, which is likely to be incorrect.
 - **Contextual understanding:** Currently, the script only accounts for Huynh-Feldt corrections; other statistical corrections have not yet been implemented. Furthermore, the script attempts to identifiy the test tail (`'one'` or `'two'`) which was used, based on the context. In future versions, the script can be programmed to allow for the detection of additional statistical corrections.
 
+---
 
 # Code Quality
 All code is compliant with the [Ruff linter](https://docs.astral.sh/ruff/).
