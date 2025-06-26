@@ -39,6 +39,8 @@ The GitHub page for the R package of `statcheck` created by Michèle Nuijten can
 # File Organization
 ```
 bachelorThesis/
+├── cli.py                          # Unified command-line interface
+├── config.yaml                     # Configuration file for customizing behavior
 ├── testers/
 │   ├── GRIM/                       # GRIM test implementation
 │   │   ├── config.py               # Hyperparameters & prompts
@@ -49,6 +51,10 @@ bachelorThesis/
 │       ├── main_single_run.py      # Single analysis
 │       ├── main_multiple_runs.py   # Triple analysis for consistency
 │       └── pipeline.py             # Core logic for Statcheck
+├── utils/                          # Utility modules
+│   ├── __init__.py                 # Package initialization
+│   ├── config.py                   # Configuration management
+│   └── logging_config.py           # Logging configuration
 ├── requirements.txt                # Python dependencies
 ├── README.md                       # Project documentation
 └── .env                            # User-created file for environment variables

@@ -41,6 +41,8 @@ from typing import Optional
 # Importing custom modules for GRIM and Statcheck testers
 from testers.GRIM.pipeline import GRIMTester
 from testers.statcheck.pipeline import StatcheckTester
+from utils.config import load_config
+from utils.logging_config import setup_logging
 
 def create_parser() -> argparse.ArgumentParser:
     """
@@ -104,6 +106,9 @@ def export_results(df, output_path: str, format_type: str) -> None:
     """
     
     output_path = Path(output_path)
+    
+    # Create directory if it doesn't exist
+    output_path.parent.mkdir(parents=True, exist_ok=True)
     
     try:
         if format_type == 'csv':
@@ -243,6 +248,16 @@ def main() -> None:
     >>> main()
     This function is typically called when the script is run directly.
     """
+    # Load configuration
+    config = load_config()
+    
+    # Set up logging
+    setup_logging(
+        level=config.log_level,
+        log_file=config.log_file,
+        verbose=config.verbose
+    )
+    
     parser = create_parser()
     args = parser.parse_args()
     

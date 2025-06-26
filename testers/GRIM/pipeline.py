@@ -26,8 +26,6 @@ sys.path.append(str(Path(__file__).parent.parent.parent))
 from config import (
     API_KEY,
     GRIM_PROMPT,
-    MAX_WORDS,
-    OVERLAP_WORDS,
     apply_pandas_display_options,
 )
 from openai import OpenAI
@@ -145,8 +143,7 @@ class GRIMTester:
     # ------------------------------------------------------------------
     # File reading
     # ------------------------------------------------------------------
-    @staticmethod
-    def read_context_from_file(file_path: str) -> List[str]:
+    def read_context_from_file(self, file_path: str) -> List[str]:
         """
         Reads the context from a .txt, .pdf, .html, or .htm file and splits it into segments.
 
@@ -187,11 +184,11 @@ class GRIMTester:
             # Split text into overlapping segments
             words = text.split()
             segments = []
-            step = MAX_WORDS - OVERLAP_WORDS # Get variables from config.py
+            step = self.config.max_words - self.config.overlap_words
 
             logger.info(f"Text contains {len(words)} words, creating segments")
             for i in range(0, len(words), step):
-                segment = words[i:i + MAX_WORDS]
+                segment = words[i:i + self.config.max_words]
                 segments.append(" ".join(segment))
 
             logger.info(f"Created {len(segments)} text segments")

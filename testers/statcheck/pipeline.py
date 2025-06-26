@@ -14,9 +14,6 @@ sys.path.append(str(Path(__file__).parent.parent.parent))
 # Local imports
 from config import (
     API_KEY,
-    MAX_WORDS,
-    OVERLAP_WORDS,
-    SIGNIFICANCE_LEVEL,
     STATCHECK_PROMPT,
     apply_pandas_display_options,
 )
@@ -75,10 +72,7 @@ class StatcheckTester:
         self.api_key = API_KEY  # Get the API key from the config file
         self.client = OpenAI(api_key=self.api_key)  # Initialize the OpenAI client
         self.logger = get_logger()
-        if UTILS_AVAILABLE:
-            self.config = get_config().statcheck
-        else:
-            self.config = get_config().statcheck
+        self.config = get_config().statcheck
 
     # ------------------------------------------------------------------
     # Statcheck core calculations
@@ -339,8 +333,7 @@ class StatcheckTester:
     # ------------------------------------------------------------------
     # File reading
     # ------------------------------------------------------------------
-    @staticmethod
-    def read_context_from_file(file_path: str) -> list[str]:
+    def read_context_from_file(self, file_path: str) -> list[str]:
         """
         Reads the context from a .txt, .pdf, .html, or .htm file and splits it into segments.
 
@@ -381,11 +374,11 @@ class StatcheckTester:
             # Split text into overlapping segments
             words = text.split()
             segments = []
-            step = MAX_WORDS - OVERLAP_WORDS # Get variables from config.py
+            step = self.config.max_words - self.config.overlap_words
 
             logger.info(f"Text contains {len(words)} words, creating segments")
             for i in range(0, len(words), step):
-                segment = words[i:i + MAX_WORDS]
+                segment = words[i:i + self.config.max_words]
                 segments.append(" ".join(segment))
 
             logger.info(f"Created {len(segments)} text segments")
@@ -410,7 +403,7 @@ class StatcheckTester:
         :param file_context: A list of context segments.
         :return: A pandas DataFrame containing the statcheck results (or None if no results).
         """
-        significance_level = SIGNIFICANCE_LEVEL # Get significance level from config.py
+        significance_level = self.config.significance_level
         all_tests = []
         
         # Initialize progress tracking
