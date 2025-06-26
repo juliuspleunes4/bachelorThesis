@@ -15,6 +15,12 @@ from typing import Dict, List
 import fitz  # PyMuPDF
 import pandas as pd
 from bs4 import BeautifulSoup
+import time
+import sys
+from pathlib import Path
+
+# Add parent directory to path for imports
+sys.path.append(str(Path(__file__).parent.parent.parent))
 
 # Local imports
 from config import (
@@ -25,6 +31,8 @@ from config import (
     apply_pandas_display_options,
 )
 from openai import OpenAI
+from utils.logging_config import get_logger, ProgressLogger
+from utils.config import get_config
 
 # -------------------------------------------------------------------------
 # Pandas display options
@@ -44,6 +52,8 @@ class GRIMTester:
     def __init__(self) -> None:
         self.api_key = API_KEY  # Get the API key from the config file
         self.client = OpenAI(api_key=self.api_key)  # Initialize the OpenAI client
+        self.logger = get_logger()
+        self.config = get_config().grim
 
     # ------------------------------------------------------------------
     # GRIM core calculations
@@ -99,17 +109,23 @@ class GRIMTester:
         """
         prompt = GRIM_PROMPT.format(context=context)
 
-        response = self.client.chat.completions.create(
-            model="gpt-4o",
-            messages=[
-                {
-                    "role": "system",
-                    "content": "You are an assistant that extracts reported means and their sample sizes only when the data are explicitly integer-based.",
-                },
-                {"role": "user", "content": prompt},
-            ],
-            temperature=0.01,
-        )
+        try:
+            self.logger.debug("Sending request to OpenAI API")
+            response = self.client.chat.completions.create(
+                model=self.config.api_model,
+                messages=[
+                    {
+                        "role": "system",
+                        "content": "You are an assistant that extracts reported means and their sample sizes only when the data are explicitly integer-based.",
+                    },
+                    {"role": "user", "content": prompt},
+                ],
+                temperature=self.config.temperature,
+            )
+            self.logger.debug("Received response from OpenAI API")
+        except Exception as e:
+            self.logger.error(f"OpenAI API error: {e}")
+            return None
 
         response_content = response.choices[0].message.content.strip()
 
@@ -137,7 +153,10 @@ class GRIMTester:
         :param file_path: The path to the file containing the context.
         :return: A list of context segments, each as a string.
         """
+        logger = get_logger()
+        
         try:
+            logger.info(f"Reading file: {file_path}")
             # Get the lowercase file extension
             extension = os.path.splitext(file_path.strip())[-1].lower()
 
@@ -149,8 +168,11 @@ class GRIMTester:
             elif extension == ".pdf":
                 text = ""
                 with fitz.open(file_path) as doc:
-                    for page in doc:
+                    logger.debug(f"Processing PDF with {len(doc)} pages")
+                    for page_num, page in enumerate(doc, 1):
                         text += page.get_text() + "\n"
+                        if page_num % 10 == 0:
+                            logger.debug(f"Processed {page_num} pages")
 
             elif extension in (".html", ".htm"):
                 with open(file_path, "r", encoding="utf-8") as f:
@@ -158,6 +180,7 @@ class GRIMTester:
                     text = soup.get_text(separator=" ")
 
             else:
+                logger.error(f"Unsupported file type: {extension}")
                 print("Unsupported file type. Please supply a .txt, .pdf, .html, or .htm file.")
                 return []
 
@@ -166,14 +189,21 @@ class GRIMTester:
             segments = []
             step = MAX_WORDS - OVERLAP_WORDS # Get variables from config.py
 
+            logger.info(f"Text contains {len(words)} words, creating segments")
             for i in range(0, len(words), step):
                 segment = words[i:i + MAX_WORDS]
                 segments.append(" ".join(segment))
 
+            logger.info(f"Created {len(segments)} text segments")
             return segments
 
         except FileNotFoundError:
+            logger.error(f"File not found: {file_path}")
             print("File not found. Please provide a valid path.")
+            return []
+        except Exception as e:
+            logger.error(f"Error reading file {file_path}: {e}")
+            print(f"Error reading file: {e}")
             return []
 
     # ------------------------------------------------------------------
@@ -188,12 +218,18 @@ class GRIMTester:
         :return: None, prints the results of the GRIM test.
         """
         all_tests: List[Dict] = []
+        
+        # Initialize progress tracking
+        progress = ProgressLogger(len(file_context), "Processing segments")
 
         # ------------------------------ Extraction loop ------------------------------
         for idx, context in enumerate(file_context):
+            self.logger.debug(f"Processing segment {idx + 1}/{len(file_context)}")
             print(f"Processing segment {idx + 1}/{len(file_context)}...")
+            
             test_data = self.extract_data_from_text(context)
             if test_data is None:
+                progress.update()
                 continue
 
             try:
@@ -206,14 +242,23 @@ class GRIMTester:
                     for t in tests
                 ):
                     all_tests.extend(tests)
+                    self.logger.debug(f"Extracted {len(tests)} tests from segment {idx + 1}")
             except (SyntaxError, ValueError) as err:
+                self.logger.warning(f"Error parsing extracted data from segment {idx + 1}: {err}")
                 print(f"Error parsing extracted data: {err}")
+            
+            progress.update()
+
+        progress.finish()
 
         # ------------------------------ Run GRIM -------------------------------------
         if not all_tests:
+            self.logger.info("No tests found for GRIM analysis")
             return None
 
+        self.logger.info(f"Running GRIM test on {len(all_tests)} extracted tests")
         results: List[Dict] = []
+        
         for test in all_tests:
             reported_mean_str = str(test["reported_mean"])
             reported_mean_float = float(reported_mean_str)
@@ -248,4 +293,38 @@ class GRIMTester:
             ["Consistent", "Reported Mean", "Sample Size", "Decimals", "Reasoning"]
         ]
 
+        self.logger.info(f"GRIM test completed. Found {len(df)} applicable results")
         return df if not df.empty else None
+
+    # ------------------------------------------------------------------
+    # Results export
+    # ------------------------------------------------------------------
+    def export_results(self, df: pd.DataFrame, output_path: str, format_type: str = "csv") -> bool:
+        """
+        Export results to specified format.
+        
+        :param df: DataFrame containing results
+        :param output_path: Path to save the file
+        :param format_type: Format type ('csv', 'json', 'excel')
+        :return: True if successful, False otherwise
+        """
+        try:
+            output_path = Path(output_path)
+            output_path.parent.mkdir(parents=True, exist_ok=True)
+            
+            if format_type.lower() == 'csv':
+                df.to_csv(output_path, index=False)
+            elif format_type.lower() == 'json':
+                df.to_json(output_path, orient='records', indent=2)
+            elif format_type.lower() == 'excel':
+                df.to_excel(output_path, index=False)
+            else:
+                self.logger.error(f"Unsupported format: {format_type}")
+                return False
+            
+            self.logger.info(f"Results exported to: {output_path}")
+            return True
+            
+        except Exception as e:
+            self.logger.error(f"Error exporting results: {e}")
+            return False

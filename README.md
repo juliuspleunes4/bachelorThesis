@@ -67,8 +67,9 @@ First, clone the repository using Git. Make sure Python 3.10.11 is installed. Th
 Once this is done, everything should be installed and ready for use.
 
 ## Running the Tests
-You can run the GRIM Test and Statcheck scripts by executing their corresponding Python file and providing the path to your `.pdf`, `.htm`, `.html`, or `.txt`  file when prompted.
+You can run the GRIM Test and Statcheck scripts in multiple ways:
 
+### Traditional Method (Interactive)
  - To run the **GRIM Test**:
    
    Execute `$ python testers\GRIM\main.py`
@@ -78,6 +79,42 @@ You can run the GRIM Test and Statcheck scripts by executing their corresponding
    Execute `$ python testers\statcheck\main_single_run.py`
    
    Execute `$ python testers\statcheck\main_multiple_runs.py` if you want to automatically analyse the provided file three times. This improves consistency but increases runtime and costs.
+
+### New CLI Method (Recommended)
+The project now includes a unified command-line interface for easier usage:
+
+ - To run the **GRIM Test**:
+   ```bash
+   python cli.py grim path/to/your/file.pdf --output results.csv --format csv --verbose
+   ```
+    
+ - To run **statcheck** (single run):
+   ```bash
+   python cli.py statcheck path/to/your/file.pdf --output results.json --format json
+   ```
+   
+ - To run **statcheck** (multiple runs for consistency):
+   ```bash
+   python cli.py statcheck path/to/your/file.pdf --runs 3 --output results.xlsx --format excel --verbose
+   ```
+
+### CLI Options
+- `--output, -o`: Specify output file path
+- `--format, -f`: Choose output format (csv, json, excel)
+- `--verbose, -v`: Enable detailed logging
+- `--runs, -r`: Number of analysis runs for statcheck (1-5, default: 1)
+
+### Examples
+```bash
+# Basic GRIM test with CSV output
+python cli.py grim paper.pdf --output grim_results.csv
+
+# Statcheck with verbose logging and JSON output
+python cli.py statcheck paper.pdf --output statcheck_results.json --format json --verbose
+
+# Multiple statcheck runs for consistency
+python cli.py statcheck paper.pdf --runs 3 --output consistent_results.xlsx --format excel
+```
 
 ---
 
@@ -210,5 +247,34 @@ The process involves the following steps:
 
 # Code Quality
 All code is compliant with the [Ruff linter](https://docs.astral.sh/ruff/).
+
+## Configuration
+
+The project now supports configuration files for customizing behavior. A `config.yaml` file can be used to set:
+
+- API models and temperature settings
+- Text segmentation parameters  
+- Logging preferences
+- Default output formats
+
+See `config.yaml` for all available options.
+
+## New Features
+
+### Enhanced CLI Interface
+- Unified command-line interface for both tools
+- Support for multiple output formats (CSV, JSON, Excel)
+- Progress tracking and verbose logging
+- Batch processing capabilities
+
+### Improved Error Handling
+- Comprehensive logging system
+- Better error messages and debugging information
+- Graceful fallbacks when optional features are unavailable
+
+### Export Capabilities
+- Export results to CSV, JSON, or Excel formats
+- Automatic directory creation for output files
+- Structured output for easier data analysis
 
 

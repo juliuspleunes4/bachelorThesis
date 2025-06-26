@@ -1,0 +1,27 @@
+# Configuration file for Statistical Error Detection Tools
+# This file contains settings for both GRIM and Statcheck tools
+
+# By J.J.G. Pleunes
+
+# GRIM Test Configuration
+grim:
+  max_words: 1000          # Maximum words per segment sent to AI
+  overlap_words: 200       # Word overlap between segments  
+  api_model: "gpt-4o"      # OpenAI model to use
+  temperature: 0.01        # AI model temperature (lower = more deterministic)
+
+# Statcheck Configuration
+statcheck:
+  max_words: 500           # Maximum words per segment sent to AI
+  overlap_words: 8         # Word overlap between segments
+  api_model: "gpt-4o-mini" # OpenAI model to use (cheaper for structured extraction)
+  temperature: 0.0         # AI model temperature
+  significance_level: 0.05 # Alpha level for statistical significance
+
+# Logging Configuration
+log_level: "INFO"          # Logging level: DEBUG, INFO, WARNING, ERROR, CRITICAL
+log_file: null             # Optional log file path (null = console only)
+verbose: false             # Enable verbose logging
+
+# Output Configuration  
+default_output_format: "csv"  # Default format: csv, json, excel
