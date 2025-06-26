@@ -37,20 +37,22 @@ The GitHub page for the R package of `statcheck` created by Michèle Nuijten can
 ---
 
 # File Organization
+```
 bachelorThesis/
 ├── testers/
-│   ├── GRIM/          # GRIM test implementation
-│   │   ├── config.py  # Hyperparameters & prompts
-│   │   ├── main.py    # Entry point
-│   │   └── pipeline.py # Core logic
-│   └── statcheck/     # Statcheck implementation  
-│       ├── config.py  # Hyperparameters & prompts
-│       ├── main_single_run.py    # Single analysis
-│       ├── main_multiple_runs.py # Triple analysis for consistency
-│       └── pipeline.py # Core logic
-├── requirements.txt
-├── README.md
-└── .env (user-created)
+│   ├── GRIM/                       # GRIM test implementation
+│   │   ├── config.py               # Hyperparameters & prompts
+│   │   ├── main.py                 # Entry point for GRIM test
+│   │   └── pipeline.py             # Core logic for GRIM test
+│   └── statcheck/                  # Statcheck implementation
+│       ├── config.py               # Hyperparameters & prompts
+│       ├── main_single_run.py      # Single analysis
+│       ├── main_multiple_runs.py   # Triple analysis for consistency
+│       └── pipeline.py             # Core logic for Statcheck
+├── requirements.txt                # Python dependencies
+├── README.md                       # Project documentation
+└── .env                            # User-created file for environment variables
+```
 
 ---
 
